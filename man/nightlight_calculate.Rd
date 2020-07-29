@@ -2,7 +2,7 @@
 \alias{nightlight_calculate}
 \title{nightlight_calculate}
 \description{
-Perform calculations on nightlights of a region in a given time inteval (defaults are sum of light values, min and max).}
+Perform calculations on nightlights of a region in a given time interval (defaults are mean, sum of light values, min and max).}
 \usage{
 nightlight_calculate(
 area_names,
