@@ -2,7 +2,7 @@
 \alias{nightlight_calculate}
 \title{nightlight_calculate}
 \description{
-Perform calculations on nightlights of a region in a given time interval (defaults are mean, sum of light values, min and max).}
+Perform calculations on nightlights of a region in a given time interval (defaults are sum of light values, min, mean and max).}
 \usage{
 nightlight_calculate(
 area_names,
@@ -25,11 +25,11 @@ ymin = NULL,
 ymax = NULL)
 }
 \arguments{
-\item{area_names}{May not be empty. String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically, except if it is already in your working directory. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
+\item{area_names}{May not be empty. String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your working directory that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
 
-\item{time_from}{May not be empty. String with the starting date in the format "2012-04". The monthly data goes from Apr 2012 onwards. If this is a year, then simply "1992". The yearly data goes from 1992 to 2013.}
+\item{time_from}{May not be empty. String with the starting date in the format "2012-04" (monthly data) or "1992" (yearly data). The monthly data goes from Apr 2012 onwards. The yearly data goes from 1992 to 2013. If only one time period is desired, then time_from = time_to.}
 
-\item{time_to}{May not be empty. String with the end date in the format "2012-04". The monthly data goes from Apr 2012 onwards. If this is a year, then simply "1992". The yearly data goes from 1992 to 2013. If only one time period is desired, then time_from = time_to.}
+\item{time_to}{May not be empty. String with the end date in the format "2012-04" (monthly data) or "1992" (yearly data). The monthly data goes from Apr 2012 onwards. The yearly data goes from 1992 to 2013. If only one time period is desired, then time_from = time_to.}
 
 \item{light_location}{May not be empty. Provide the location of the lightfiles on your drives as a string.}
 
@@ -41,9 +41,9 @@ ymax = NULL)
 
 \item{download_shape}{Default is "sp.rds". Change to ".shp", ".kml" or ".gpkg" if you want to download a different shapefile format from GADM. Will only download if no own shapefiles are provided in the shapefiles argument or present in the working directory.}
 
-\item{functions_calculate}{Defaults (activated if this is NULL) are sum of lights, min, mean, and max. These calculations will be performed on the night light data for your given time and region. Functions need to support the possibility to set na.rm as an argument. See the documentation of raster::extent, into which I feed the functions, for further details when encountering problems. The functions have to be given in a vector, even if there is only one function.}
+\item{functions_calculate}{Defaults (activated if this is NULL) are sum of light values, min, mean, and max. These calculations will be performed on the night light data for your given time and region. Functions need to support the possibility to set na.rm as an argument. See the documentation of raster::extent, into which the functions are fed, for further details when encountering problems. The functions have to be given in a vector, even if there is only one function.}
 
-\item{function_names}{Defaults (activated if this is NULL) are lightsum, lightmin and lightmax. This is a vector of strings and gives names to the columnns in the final dataframe output for each calculation you perform.}
+\item{function_names}{Defaults (activated if this is NULL) are lightsum, lightmin, lightmean and lightmax. This is a vector of strings and gives names to the columnns in the final dataframe output for each calculation you perform.}
 
 \item{rectangle_calculate}{Default is FALSE. If your shapefile does not allow calculating values within its borders (always possible for GADM shapefiles), you should set this to true. The code will calculate the values for the smallest rectangle that reaches over the full extent of the shapefile. If you are not sure whether this applies for you, you can check whether your shapefile encloses a well-defined area by plotting it.}
 

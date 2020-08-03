@@ -17,11 +17,11 @@ xmax = NULL,
 ymin = NULL,
 ymax = NULL}
 \arguments{
-\item{area_names}{Default is "world", in which case data for the whole world will be downloaded (no difference for yearly data because there the whole world is one file; important for monthly data). String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically, except if it is already in your working directory. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
+\item{area_names}{Default is "world", in which case data for the whole world will be downloaded (no difference for yearly data because there the whole world is one file; important for monthly data). String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your working directory that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
 
-\item{time_from}{May not be empty. String with the starting date in the format "2012-04". The monthly data goes from Apr 2012 onwards. If only one time period is desired, then time_from = time_to.}
+\item{time_from}{May not be empty. String with the starting date in the format "2012-04" (monthly data) or "1992" (yearly data). The monthly data goes from Apr 2012 onwards. The yearly data goes from 1992 to 2013. If only one time period is desired, then time_from = time_to.}
 
-\item{time_to}{May not be empty. String with the end date in the format "2012-04". The monthly data goes from Apr 2012 onwards. If only one time period is desired, then time_from = time_to.}
+\item{time_to}{May not be empty. String with the end date in the format "2012-04" (monthly data) or "1992" (yearly data). The monthly data goes from Apr 2012 onwards. The yearly data goes from 1992 to 2013. If only one time period is desired, then time_from = time_to.}
 
 \item{light_location}{May not be empty. Provide the location where you store your light files on your drive as a string.}
 
