@@ -12,7 +12,9 @@ shapefile_location = NULL,
 admlevel = 0,
 shapefiles = NULL,
 download_shape = "sp.rds",
-user_coordinates = NULL}
+dmsp_oldversion = FALSE,
+user_coordinates = NULL)
+}
 \arguments{
 \item{area_names}{Default is "world", in which case data for the whole world will be downloaded (no difference for yearly data because there the whole world is one file; important for monthly data). String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your shapefile location that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
 
@@ -28,4 +30,7 @@ user_coordinates = NULL}
 
 \item{download_shape}{Default is "sp.rds". Change to ".shp", ".kml" or ".gpkg" if you want to download a different shapefile format from GADM. Will only download if no own shapefiles are provided in the shapefiles argument or present in the shapefile location.}
 
+\item{dmsp_oldversion}{Default is FALSE. The DMSP yearly data have different satellite versions, changing over time. Some years have 2 satellite versions available. By default, the newer version will be chosen if there are 2 for a given year. However, it could be useful to use a consistent satellite version if possible. Years and their possible satellite versions: 1992-1994 "F10",  1994-1999 "F12", 1997-2003 "F14", 2000-2007 "F15", 2004-2009 "F16", 2010-2013 "F18". Inputting TRUE for this argument will give the older versions of the satellites in those cases where 2 are available.}
+
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
+}

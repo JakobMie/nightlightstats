@@ -5,16 +5,20 @@ nightlight_plot <- function(area_names,
                             admlevel = 0,
                             shapefiles = NULL,
                             download_shape = "sp.rds",
+                            dmsp_oldversion = FALSE,
                             saveraster = FALSE,
                             light_colours = c("white", "darkblue", "gray"),
                             shapefile_colour = "black",
                             fixed_scale_low = NULL,
                             fixed_scale_high = NULL,
+                            cut_quality = 0,
                             user_projection = NULL,
                             user_coordinates = NULL){
 
+  group <- lat <- light <- lon <- long <- lights_plot <- raster_lights <- NULL # "nulling out" i.e. setting the variables to NULL first and then using them later, only to bind variables so there is no "binding for global variables" problem later
+
   if (is.null(shapefile_location) & is.null(user_coordinates)){
-    print("Please input geographical information, either by providing shapefiles (do not forget to use shapefile_location to specifiy the location on your drive) or a set of coordinates.")
+    stop("Please input geographical information, either by providing shapefiles (do not forget to use shapefile_location to specifiy the location on your drive) or a set of coordinates.")
   }
 
   time <- as.character(time) # need this as character to build strings later
@@ -32,10 +36,6 @@ nightlight_plot <- function(area_names,
     lightdata_time <- "yearly"
   } # change to yearly if year is given (only possibility for 4 characters)
 
-  colour_from <- light_colours[1]
-  colour_to <- light_colours[2]
-  na_colour <- light_colours[3]
-
   if (length(area_names == 1) & length(shapefiles) > 1){
     area_names <- rep(area_names, length = length(shapefiles))
     for (l in 1:length(shapefiles)){
@@ -45,33 +45,47 @@ nightlight_plot <- function(area_names,
 
   if (!is.null(shapefiles)){
     shapefiles <- paste0(shapefile_location, "/", shapefiles)
-    user_shapefiles <- shapefiles
+    help_shapefiles <- shapefiles
   } else if (is.null(shapefiles)){
-    user_shapefiles <- NA
-  } # user_shapefiles is a duplicate of shapefiles if provided by the user, otherwise NA
+    help_shapefiles <- NA
+  } # help_shapefiles is a duplicate of shapefiles for later if provided by the user, otherwise NA
+
+  # create the time sequence to perform the loop for each period between "from" and "to"
+  # + keep monthly data standardized in yearmonth format
+  if (lightdata_time == "monthly"){
+    time_from <- zoo::as.yearmon(time_from)
+    time_to <- zoo::as.yearmon(time_to)
+    time_from <- zoo::as.Date.yearmon(time_from)
+    time_to <- zoo::as.Date.yearmon(time_to)
+    sequence <- seq(time_from, time_to, by = "mon")
+    sequence <- zoo::as.yearmon(sequence)
+  } else if (lightdata_time == "yearly"){
+    sequence <- as.character(seq(time_from, time_to, by = 1))
+  }
+
 
   for (i in 1:length(area_names)){
 
-    user_shapefile <- user_shapefiles[i]
-    shapefile <- shapefiles[i]
+    help_shapefile <-  help_shapefiles[i]
+    shapefile <-  shapefiles[i]
     # these are either provided by the user and hence activated at this point
-    # or shapefile will be NULL and user_shapefile will be NA and shapefile will be detected or downloaded later
+    # or shapefile will be NULL and help_shapefile will be NA and shapefile will be detected or downloaded later
 
     # if shapefile available at this point, its type is detected and it is read with the according function
-    if (length(grep(user_shapefile, pattern = "sp.rds")) != 0){
+    if (length(grep(help_shapefile, pattern = "sp.rds")) != 0){
       shapefile <- readRDS(shapefile)
     }
-    if (length(grep(user_shapefile, pattern = "sf.rds")) != 0){
+    if (length(grep(help_shapefile, pattern = "sf.rds")) != 0){
       print("Unfortunately, the function does not work with sf.rds shapefiles. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
     }
-    if (length(grep(user_shapefile, pattern = ".shp")) != 0 |
-        length(grep(user_shapefile, pattern = ".kml")) != 0){
+    if (length(grep(help_shapefile, pattern = ".shp")) != 0 |
+        length(grep(help_shapefile, pattern = ".kml")) != 0){
       shapefile <- rgdal::readOGR(shapefile)
     }
-    if (length(grep(user_shapefile, pattern = ".gpkg")) != 0){
-      layers <- rgdal::ogrListLayers(user_shapefile)
+    if (length(grep(help_shapefile, pattern = ".gpkg")) != 0){
+      layers <- rgdal::ogrListLayers(help_shapefile)
       layer <- length(layers) - admlevel
-      shapefile <- rgdal::readOGR(user_shapefile, layers[layer])
+      shapefile <- rgdal::readOGR(help_shapefile, layers[layer])
     }
 
     if(!is.null(user_coordinates)){
@@ -81,19 +95,6 @@ nightlight_plot <- function(area_names,
       raster::crs(shapefile) <- "+init=epsg:4326"
       shapefile <- sp::SpatialPolygonsDataFrame(shapefile, data.frame(N = c("1"), row.names = c("1")))
     } # creates a rectangular shapefile if user provides coordinates
-
-    # create the time sequence to perform the loop for each period between "from" and "to"
-    # + keep monthly data standardized in yearmonth format
-    if (lightdata_time == "monthly"){
-      time_from <- zoo::as.yearmon(time_from)
-      time_to <- zoo::as.yearmon(time_to)
-      time_from <- zoo::as.Date.yearmon(time_from)
-      time_to <- zoo::as.Date.yearmon(time_to)
-      sequence <- seq(time_from, time_to, by = "mon")
-      sequence <- zoo::as.yearmon(sequence)
-    } else if (lightdata_time == "yearly"){
-      sequence <- as.character(seq(time_from,time_to,by = 1))
-    }
 
     ISO3s <- suppressWarnings(countrycode::countrycode(area_names,
                                                        origin = "country.name",
@@ -124,32 +125,32 @@ nightlight_plot <- function(area_names,
 
     # sp.rds
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "sp.rds")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = admlevel)]
-      if (length(user_shapefile) != 0){
-        shapefile <- readRDS(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "sp.rds")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+      if (length(help_shapefile) != 0){
+        shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .shp
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".shp")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = admlevel)]
-      if (length(user_shapefile) != 0){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".shp")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+      if (length(help_shapefile) != 0){
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .shp but still zipped as .zip
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        user_shapefile <- list.files(shapefile_location, pattern = ".shp")
-        user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-        user_shapefile <- user_shapefile[grep(user_shapefile, pattern = admlevel)]
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+        help_shapefile <- list.files(shapefile_location, pattern = ".shp")
+        help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+        help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
         zipfile <- list.files(shapefile_location, pattern = "shp.zip")
         zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
         unlink(zipfile)
@@ -157,20 +158,20 @@ nightlight_plot <- function(area_names,
     }
     # .kml
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".kml")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = admlevel)]
-      if (length(user_shapefile) != 0){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".kml")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+      if (length(help_shapefile) != 0){
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .kml but still zipped as .kmz
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".kmz")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        shapefile <- rgdal::readOGR(user_shapefile)
+      help_shapefile <- list.files(shapefile_location, pattern = ".kmz")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- unzip(zipfile = paste0(help_shapefile, "/", help_shapefile), exdir = shapefile_location)
+        shapefile <- rgdal::readOGR(help_shapefile)
         zipfile <- list.files(shapefile_location, pattern = ".kmz")
         zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
         unlink(zipfile)
@@ -178,26 +179,26 @@ nightlight_plot <- function(area_names,
     }
     # .gpkg
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      if (length(user_shapefile) != 0){
-        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      if (length(help_shapefile) != 0){
+        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
         layer <- length(layers) - admlevel
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile), layers[layer])
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[layer])
       }
     }
     # .gpkg but still zipped as .zip
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        user_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-        user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ISO3)]
-        user_shapefile <- user_shapefile[-grep(user_shapefile, pattern = ".zip")]
-        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+        help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
+        help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+        help_shapefile <- help_shapefile[-grep(help_shapefile, pattern = ".zip")]
+        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
         layer <- length(layers) - admlevel
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile), layers[layer])
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[layer])
         zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
         zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
         unlink(zipfile)
@@ -208,29 +209,29 @@ nightlight_plot <- function(area_names,
 
     # sp.rds
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "sp.rds")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        shapefile <- readRDS(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "sp.rds")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .shp
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".shp")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".shp")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .shp but still zipped as .zip
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        user_shapefile <- list.files(shapefile_location, pattern = ".shp")
-        user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+        help_shapefile <- list.files(shapefile_location, pattern = ".shp")
+        help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
         zipfile <- list.files(shapefile_location, pattern = "shp.zip")
         zipfile <- zipfile[grep(zipfile, pattern = area_name)]
         unlink(zipfile)
@@ -238,19 +239,19 @@ nightlight_plot <- function(area_names,
     }
     # .kml
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".kml")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".kml")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
       }
     }
     # .kml but still zipped as .kmz
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".kmz")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".kmz")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
         zipfile <- list.files(".", pattern = ".kmz")
         zipfile <- zipfile[grep(zipfile, pattern = area_name)]
         unlink(zipfile)
@@ -258,26 +259,26 @@ nightlight_plot <- function(area_names,
     }
     # .gpkg
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
         layer <- length(layers) - admlevel
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile), layers[layer])
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[layer])
       }
     }
     # .gpkg but still zipped as .zip
     if (is.null(shapefile)){
-      user_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-      if (length(user_shapefile) != 0){
-        user_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", user_shapefile), exdir = shapefile_location)
-        user_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-        user_shapefile <- user_shapefile[grep(user_shapefile, pattern = area_name)]
-        user_shapefile <- user_shapefile[-grep(user_shapefile, pattern = ".zip")]
-        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", user_shapefile))
+      help_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+      if (length(help_shapefile) != 0){
+        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+        help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
+        help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+        help_shapefile <- help_shapefile[-grep(help_shapefile, pattern = ".zip")]
+        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
         layer <- length(layers) - admlevel
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", user_shapefile), layers[layer])
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[layer])
         zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
         zipfile <- zipfile[grep(zipfile, pattern = area_name)]
         unlink(zipfile)
@@ -290,19 +291,19 @@ nightlight_plot <- function(area_names,
       stumpurl <- "https://biogeo.ucdavis.edu/data/gadm3.6/Rsp/gadm36_"
       utils::download.file(paste0(stumpurl, ISO3, "_", admlevel, "_sp.rds"),
                            destfile = paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, "_sp.rds"), mode = "wb")
-      user_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, "_sp.rds")
-      shapefile <- readRDS(user_shapefile)
+      help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, "_sp.rds")
+      shapefile <- readRDS(help_shapefile)
     }
     # .shp
     if (is.null(shapefile) & download_shape == ".shp"){
       stumpurl <- "https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_"
       utils::download.file(paste0(stumpurl, ISO3, "_shp.zip"),
                            destfile = paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip"), mode = "wb")
-      user_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip")
-      user_shapefile <- utils::unzip(zipfile = user_shapefile, exdir = shapefile_location)
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ".shp")]
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = admlevel)]
-      shapefile <- rgdal::readOGR(user_shapefile)
+      help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip")
+      help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+      shapefile <- rgdal::readOGR(help_shapefile)
       unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip"))
     }
     # .kml
@@ -310,9 +311,9 @@ nightlight_plot <- function(area_names,
       stumpurl <- "https://biogeo.ucdavis.edu/data/gadm3.6/kmz/gadm36_"
       utils::download.file(paste0(stumpurl, ISO3, "_", admlevel, ".kmz"),
                            destfile = paste0(shapefile_location, "/",  "gadm36_", ISO3, "_", admlevel, ".kmz"), mode = "wb")
-      user_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, ".kmz")
-      user_shapefile <- utils::unzip(zipfile = user_shapefile, exdir = shapefile_location)
-      shapefile <- rgdal::readOGR(user_shapefile)
+      help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, ".kmz")
+      help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
+      shapefile <- rgdal::readOGR(help_shapefile)
       unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, ".kmz"))
     }
     # .gpkg
@@ -320,12 +321,12 @@ nightlight_plot <- function(area_names,
       stumpurl <- "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/gadm36_"
       utils::download.file(paste0(stumpurl, ISO3, "_gpkg.zip"),
                            destfile = paste0(shapefile_location, "/",  "gadm36_", ISO3, "_gpkg.zip"), mode = "wb")
-      user_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip")
-      user_shapefile <- utils::unzip(zipfile = user_shapefile, exdir = shapefile_location)
-      user_shapefile <- user_shapefile[grep(user_shapefile, pattern = ".gpkg")]
-      layers <- rgdal::ogrListLayers(user_shapefile)
+      help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip")
+      help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
+      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
+      layers <- rgdal::ogrListLayers(help_shapefile)
       layer <- length(layers) - admlevel
-      shapefile <- rgdal::readOGR(user_shapefile, layers[layer])
+      shapefile <- rgdal::readOGR(help_shapefile, layers[layer])
       unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip"))
     }
 
@@ -333,6 +334,7 @@ nightlight_plot <- function(area_names,
       extent <- raster::extent(shapefile)
       extent_bbox <- sp::bbox(extent)
     }
+
     # the following is only for the case that coordinates of the shapefile are not in longlat format - in that case transform it into longlat
     shapefileprojection <- suppressWarnings(raster::crs(shapefile))
     shapefileprojection <- as.character(shapefileprojection)
@@ -341,7 +343,6 @@ nightlight_plot <- function(area_names,
       extent <- raster::extent(shapefile)
       extent_bbox <- sp::bbox(extent)
     }
-
 
     # search for tiles on which the shapefile is located
     if (lightdata_time == "monthly"){
@@ -377,7 +378,9 @@ nightlight_plot <- function(area_names,
 
     for (j in 1:length(sequence)){
 
+      # build a string out of date and search for lightdata that matches this date
       if (lightdata_time == "monthly"){
+
         year <- as.character(data.table::year(sequence[j]))
         numericyear <- as.numeric(year)
         month <- as.character(data.table::month(sequence[j]))
@@ -424,8 +427,9 @@ nightlight_plot <- function(area_names,
         }
 
         if (lightdata_time == "monthly"){
-          list <- list.files(paste0(light_location), pattern = "avg_rade9")
-          lightfile <- list[grep(yearmonthspan, list)]
+          list_light <-  list.files(paste0(light_location), pattern = "avg_rade9")
+          lightfile <- list_light[grep(".tif", list_light)]
+          lightfile <- lightfile[grep(yearmonthspan, lightfile)]
           lightfile <- lightfile[grep(tilestump, lightfile)]
           lightfile <- paste0(light_location, "/", lightfile)
           lightfile <- raster::raster(lightfile)
@@ -437,18 +441,94 @@ nightlight_plot <- function(area_names,
             lightdata <- raster::merge(lightdata, lightfile)
           }
 
+          list_quality <- list.files(paste0(light_location), pattern = "cf_cvg")
+          qualityfile <- list_quality[grep(".tif", list_quality)]
+          qualityfile <- qualityfile[grep(yearmonthspan, qualityfile)]
+          qualityfile <- qualityfile[grep(tilestump, qualityfile)]
+          qualityfile <- paste0(light_location, "/", qualityfile)
+          qualityfile <- raster::raster(qualityfile)
+          qualityfile <- raster::crop(qualityfile, extent)
+          if (t == 1){
+            qualitydata <- qualityfile
+          }
+          if (overlapping_tile == TRUE & t > 1){
+            qualitydata <- raster::merge(qualitydata, qualityfile)
+          }
+          rm(lightfile)
+          rm(qualityfile)
+
         } else if (lightdata_time == "yearly"){
-          list <- list.files(light_location, pattern = "avg_vis")
-          list <- list[grep("stable", list)]
-          lightfile <- list[grep(year, list)]
+
+          if (year == "1992" |
+              year == "1993"){
+            dmsp_stump <- "F10"
+          } else if (year == "1994"){
+            if (dmsp_oldversion == TRUE){
+              dmsp_stump <- "F10"
+            } else if (dmsp_oldversion == FALSE){
+              dmsp_stump <- "F12"
+            }
+          } else if (year == "1995" |
+                     year == "1996"){
+            dmsp_stump <- "F12"
+          } else if (year == "1997" |
+                     year == "1998" |
+                     year == "1999"){
+            if (dmsp_oldversion == TRUE){
+              dmsp_stump <- "F12"
+            } else if (dmsp_oldversion == FALSE){
+              dmsp_stump <- "F14"
+            }
+          } else if (year == "2000" |
+                     year == "2001" |
+                     year == "2002" |
+                     year == "2003"){
+            if (dmsp_oldversion == TRUE){
+              dmsp_stump <- "F14"
+            } else if (dmsp_oldversion == FALSE){
+              dmsp_stump <- "F15"
+            }
+          } else if (year == "2004" |
+                     year == "2005" |
+                     year == "2006" |
+                     year == "2007"){
+            if (dmsp_oldversion == TRUE){
+              dmsp_stump <- "F15"
+            } else if (dmsp_oldversion == FALSE){
+              dmsp_stump <- "F16"
+            }
+          } else if (year == "2008" |
+                     year == "2009"){
+            dmsp_stump <- "F16"
+          } else if (year == "2010" |
+                     year == "2011" |
+                     year == "2012" |
+                     year == "2013"){
+            dmsp_stump <- "F18"
+          }
+
+          list_light <-  list.files(light_location, pattern = "avg_vis.tif")
+          list_light <-  list_light[grep("stable", list_light)]
+          list_light <-  list_light[grep(dmsp_stump, list_light)]
+          lightfile <- list_light[grep(year, list_light)]
           lightdata <- paste0(light_location, "/", lightfile)
           lightdata <- raster::raster(lightdata)
           lightdata <- raster::crop(lightdata, extent)
+
+          list_quality <- list.files(light_location, pattern = "cf_cvg.tif")
+          list_quality <- list_quality[grep(dmsp_stump, list_quality)]
+          qualityfile <- list_quality[grep(year, list_quality)]
+          qualitydata <- paste0(light_location, "/", qualityfile)
+          qualitydata <- raster::raster(qualitydata)
+          qualitydata <- raster::crop(qualitydata, extent)
         }
       }
 
+      lightdata[qualitydata <= cut_quality] <- NA
+
+
       if (saveraster == TRUE){
-        raster_lights <<- lightdata # load into global environment with name raster_lights
+        raster_lights <<- lightdata # if user sets this to TRUE, load the raw raster file into the global environment with name raster_lights
       }
 
       lightdata <- raster::rasterToPoints(lightdata)
@@ -477,7 +557,7 @@ nightlight_plot <- function(area_names,
       lights_plot <<- ggplot2::ggplot() +
           ggplot2::geom_tile(data = df, mapping = ggplot2::aes(x = lon, y = lat, fill = light), alpha = 0.8) +
           ggplot2::scale_fill_gradientn(limits = c(fixed_scale_low_plot, fixed_scale_high_plot),
-                                        colors = plotrix::smoothColors(colour_from, 100, colour_to), na.value = na_colour) +
+                                        colors = plotrix::smoothColors(light_colours[1], 100, light_colours[2]), na.value = light_colours[3]) +
           ggplot2::coord_quickmap() +
           ggplot2::geom_path(data = shapefile, mapping = ggplot2::aes(x = long, y = lat, group = group), colour = shapefile_colour) +
           ggplot2::labs(title = title) +
@@ -495,7 +575,7 @@ nightlight_plot <- function(area_names,
       } else if (!is.null(user_projection)){
         lights_plot <<- ggplot2::ggplot() +
           ggplot2::geom_tile(data = df, mapping = ggplot2::aes(x = lon, y = lat, fill = light), alpha = 0.8) +
-          ggplot2::scale_fill_gradientn(limits = c(fixed_scale_low_plot, fixed_scale_high_plot), colors = plotrix::smoothColors(colour_from, 100, colour_to), na.value = na_colour) +
+          ggplot2::scale_fill_gradientn(limits = c(fixed_scale_low_plot, fixed_scale_high_plot), colors = plotrix::smoothColors(light_colours[1], 100, light_colours[2]), na.value = light_colours[3]) +
           ggplot2::coord_map(projection = user_projection) +
           ggplot2::geom_path(data = shapefile, mapping = ggplot2::aes(x = long, y = lat, group = group), colour = shapefile_colour) +
           ggplot2::labs(title = title) +
@@ -516,8 +596,7 @@ nightlight_plot <- function(area_names,
     rm(area_name)
     rm(ISO3)
     shapefile <- NULL
-    tilenumber <- NULL
+    help_shapefile <- NULL
 
   }
 }
-

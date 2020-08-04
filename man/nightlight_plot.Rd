@@ -2,21 +2,23 @@
 \alias{nightlight_plot}
 \title{nightlight_plot}
 \description{
-Plot a shapefile with its nightlights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for area_names and a timespan for time, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number can load many objects into your environment quickly!}
+Plot a shapefile with its nightlights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for area_names and a timespan for time, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number can load many objects into your environment quickly.}
 \usage{
 nightlight_plot(
 area_names,
 time,
 light_location,
-shapefile_location,
+shapefile_location = NULL,
 admlevel = 0,
 shapefiles = NULL,
 download_shape = "sp.rds",
+dmsp_oldversion = FALSE,
 saveraster = FALSE,
 light_colours = c("white", "darkblue", "gray"),
 shapefile_colour = "black",
 fixed_scale_low = NULL,
 fixed_scale_high = NULL,
+cut_quality = 0,
 user_projection = NULL,
 user_coordinates = NULL)
 }
@@ -35,6 +37,8 @@ user_coordinates = NULL)
 
 \item{download_shape}{Default is "sp.rds". Change to ".shp", ".kml" or ".gpkg" if you want to download a different shapefile format from GADM. Will only download if no own shapefiles are provided in the shapefiles argument or present in the working directory.}
 
+\item{dmsp_oldversion}{Default is FALSE. The DMSP yearly data have different satellite versions, changing over time. Some years have 2 satellite versions available. By default, the newer version will be chosen if there are 2 for a given year. However, it could be useful to use a consistent satellite version if possible. Years and their possible satellite versions: 1992-1994 "F10",  1994-1999 "F12", 1997-2003 "F14", 2000-2007 "F15", 2004-2009 "F16", 2010-2013 "F18". Inputting TRUE for this argument will give the older versions of the satellites in those cases where 2 are available.}
+
 \item{saveraster}{Default is FALSE. If set to true, an additional dataframe with the raw raster nightlight data will be produced for each time period.}
 
 \item{light_colours}{Vector of strings. Minimum colour of the colour scale (default is "white"), maximum colour of the colour scale (default is "darkblue") and colour for NAs (default is "gray"). Input inside the vector has to be in this order.}
@@ -45,7 +49,10 @@ user_coordinates = NULL)
 
 \item{fixed_scale_high}{Default is the maximum light value that is calculated (in the case if this is NULL). You can provide a fixed maximum scale value here to keep the color scale constant across several plots.}
 
+\item{cut_quality}{Default is 0. Will set all light values to NA for which the number of observations that went into the calculation of a pixel is smaller than or equal to cut_quality. Hence, with the default value you will have all pixels set to NA for which 0 observations were made but you can set this to a higher number if you want to drop all pixels below a given number of observations.}
+
 \item{user_projection}{May be empty. If empty, the standard projection is mercator. For another projection, you can choose from the projections listed here (enter the projection as a string without brackets behind it): https://www.rdocumentation.org/packages/mapproj/versions/1.2.7/topics/mapproject}
 
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
+}
 

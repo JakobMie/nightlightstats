@@ -2,19 +2,19 @@
 \alias{nightlight_calculate}
 \title{nightlight_calculate}
 \description{
-Perform calculations on nightlights of a region in a given time interval (defaults are sum of light values, min, mean and max).}
+Perform calculations on nightlights of a region in a given time interval (defaults are sum of light values, min, mean and max, plus mean_obs, which indicates the mean number of observations (with respect to pixels) that went into the aggregated image for the time period in a given area).}
 \usage{
 nightlight_calculate(
 area_names,
 time,
 light_location,
-shapefile_location,
+shapefile_location = NULL,
 admlevel = 0,
 shapefiles = NULL,
 download_shape = "sp.rds",
+dmsp_oldversion = FALSE,
 single_dataframes = FALSE,
 functions_calculate = NULL,
-function_names = NULL,
 rectangle_calculate = FALSE,
 rawdata = FALSE,
 cut_low = NULL,
@@ -37,11 +37,11 @@ user_coordinates = NULL)
 
 \item{download_shape}{Default is "sp.rds". Change to ".shp", ".kml" or ".gpkg" if you want to download a different shapefile format from GADM. Will only download if no own shapefiles are provided in the shapefiles argument or present in the shapefile location.}
 
+\item{dmsp_oldversion}{Default is FALSE. The DMSP yearly data have different satellite versions, changing over time. Some years have 2 satellite versions available. By default, the newer version will be chosen if there are 2 for a given year. However, it could be useful to use a consistent satellite version if possible. Years and their possible satellite versions: 1992-1994 "F10",  1994-1999 "F12", 1997-2003 "F14", 2000-2007 "F15", 2004-2009 "F16", 2010-2013 "F18". Inputting TRUE for this argument will give the older versions of the satellites in those cases where 2 are available.}
+
 \item{single_dataframes}{Default is FALSE. If set to TRUE, this will not only output a dataframe with all areas into the global environment, but also a dataframe for each area specified in area_names.}
 
-\item{functions_calculate}{Defaults (activated if this is NULL) are sum of light values, min, mean, and max. These calculations will be performed on the night light data for your given time and region. Functions need to support the possibility to set na.rm as an argument. See the documentation of raster::extent, into which the functions are fed, for further details when encountering problems. The functions have to be given in a vector, even if there is only one function.}
-
-\item{function_names}{Defaults (activated if this is NULL) are lightsum, lightmin, lightmean and lightmax. This is a vector of strings and gives names to the columnns in the final dataframe output for each calculation you perform.}
+\item{functions_calculate}{Defaults (activated if this is NULL) are sum of light values, min, mean, and max. These calculations will be performed on the night light data for your given time and region. Functions need to support the possibility to set na.rm as an argument. See the documentation of raster::extent, into which the functions are fed, for further details when encountering problems. The functions have to be given in a vector of strings, because they are called with get(). The name of the functions will be the column name in the final dataframe output as well.}
 
 \item{rectangle_calculate}{Default is FALSE. If your shapefile does not allow calculating values within its borders (always possible for GADM shapefiles), you should set this to true. The code will calculate the values for the smallest rectangle that reaches over the full extent of the shapefile. If you are not sure whether this applies for you, you can check whether your shapefile encloses a well-defined area by plotting it.}
 
@@ -54,3 +54,4 @@ user_coordinates = NULL)
 \item{cut_quality}{Default is 0. Will set all light values to NA for which the number of observations that went into the calculation of a pixel is smaller than or equal to cut_quality. Hence, with the default value you will have all pixels set to NA for which 0 observations were made but you can set this to a higher number if you want to drop all pixels below a given number of observations.}
 
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
+}
