@@ -111,8 +111,7 @@ nightlight_calculate <- function(area_names,
         shapefile <- rgdal::readOGR(shapefile)
       } else if (length(grep(help_shapefile, pattern = ".gpkg")) != 0){
         layers <- rgdal::ogrListLayers(help_shapefile)
-        layer <- length(layers) - admlevel
-        shapefile <- rgdal::readOGR(help_shapefile, layers[layer])
+        shapefile <- rgdal::readOGR(help_shapefile, layers[admlevel + 1])
       } else {
         stop("Unfortunately, the function does not work the format of your shapefile. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
       }
