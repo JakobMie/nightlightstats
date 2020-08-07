@@ -2,20 +2,18 @@
 \alias{nightlight_plot}
 \title{nightlight_plot}
 \description{
-Plot a shapefile with its nightlights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for area_names and a timespan for time, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number can load many objects into your environment quickly.}
+Plot a shapefile with its nightlights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for area_names and a timespan for time, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number can load many objects into your environment quickly. Note about the light files: for the DMSP images, some years have 2 versions available. Generally, if possible, a consistent version for your timespan will be chosen. Otherwise the newest version for each year will be selected. If 2 consistent versions are available for your timespan, the newer one will be selected.}
 \usage{
 nightlight_plot(
 area_names,
 time,
 light_location,
 shapefile_location = NULL,
-admlevel = 0,
 shapefiles = NULL,
 download_shape = "sp.rds",
-dmsp_oldversion = FALSE,
+admlevel = 0,
 saveraster = FALSE,
-light_colours = c("white", "darkblue", "gray"),
-shapefile_colour = "black",
+colours = c("white", "darkblue", "gray", "black"),
 fixed_scale_low = NULL,
 fixed_scale_high = NULL,
 cut_quality = 0,
@@ -31,19 +29,15 @@ user_coordinates = NULL)
 
 \item{shapefile_location}{May be empty. Provide the location of the shapefiles on your drives as a string in the case that you want to use shapefiles and not a set of coordinates.}
 
-\item{admlevel}{Default is 0. Change this when working with different administrative levels.}
-
 \item{shapefiles}{May be empty. You can provide own shapefiles here (input are the filenames) if no automatic download is desired. If there is a shapefile in your working directory that has either the name of the region which you enter in area_names or the ISO3 of the country (if it is a country) in its filename, it will be detected automatically and you do not have to use this argument.}
 
 \item{download_shape}{Default is "sp.rds". Change to ".shp", ".kml" or ".gpkg" if you want to download a different shapefile format from GADM. Will only download if no own shapefiles are provided in the shapefiles argument or present in the working directory.}
 
-\item{dmsp_oldversion}{Default is FALSE. The DMSP yearly data have different satellite versions, changing over time. Some years have 2 satellite versions available. By default, the newer version will be chosen if there are 2 for a given year. However, it could be useful to use a consistent satellite version if possible. Years and their possible satellite versions: 1992-1994 "F10",  1994-1999 "F12", 1997-2003 "F14", 2000-2007 "F15", 2004-2009 "F16", 2010-2013 "F18". Inputting TRUE for this argument will give the older versions of the satellites in those cases where 2 are available.}
+\item{admlevel}{Default is 0. Change this when working with different administrative levels.}
 
 \item{saveraster}{Default is FALSE. If set to true, an additional dataframe with the raw raster nightlight data will be produced for each time period.}
 
-\item{light_colours}{Vector of strings. Minimum colour of the colour scale (default is "white"), maximum colour of the colour scale (default is "darkblue") and colour for NAs (default is "gray"). Input inside the vector has to be in this order.}
-
-\item{shapefile_colour}{Default is "black". Colour of the shapefile in the plot.}
+\item{colours}{Vector of strings. Minimum colour of the colour scale (default is "white"), maximum colour of the colour scale (default is "darkblue"), colour for NAs (default is "gray") and colour of the shapefile (default is "black"). Input inside the vector has to be in this order.}
 
 \item{fixed_scale_low}{Default is the minimum light value that is calculated (in the case if this is NULL). You can provide a fixed minimum scale value here to keep the color scale constant across several plots.}
 
@@ -55,4 +49,3 @@ user_coordinates = NULL)
 
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
 }
-

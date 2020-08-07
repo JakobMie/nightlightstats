@@ -9,3 +9,8 @@ License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: R.utils, zoo, data.table, countrycode, raster, sp, rgdal, rgeos, broom, ggplot2, plotrix, xml2, rvest, methods
+RoxygenNote: 7.1.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
