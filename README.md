@@ -1,6 +1,6 @@
 # nightlightstats
 
-Night light satellite data can be useful as a proxy for economic activity in a region for which no GDP data are available, for example at the sub-national level, or GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
+Night light satellite data can be useful as a proxy for economic activity in a region for which no GDP data are available, for example at the sub-national level, or if GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
 
 This package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
 
@@ -20,7 +20,6 @@ For the yearly data, you can just use the `time` argument. The DMSP data are ava
 
     nightlight_download(
     time = c("1992", "2013"),
-    shapefile_location = "D:/shapefiles",
     light_location = "D:"/nightlights)
 
 The monthly data are a bit more tricky. VIIRS images divide the whole world into 6 geographic tiles. You have the option of either downloading only the tile you need (by inputting geographic information, either through coordinates or using a shapefile) or by downloading all 6 tiles (by providing no geographic information). Note: it may happen that the region you want to analyze is overlapping on two or more of these tiles. In that case, all of them will be downloaded.
