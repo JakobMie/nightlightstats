@@ -1,6 +1,6 @@
 # nightlightstats
 
-Night light satellite data can be useful as a proxy for economic activity in a region for which no GDP data are available (e.g. at the sub-national level) or GDP measurement is of poor quality (e.g. in some developing countries), see e.g. Henderson et al. (2012). 
+Night light satellite data can be useful as a proxy for economic activity in a region for which no GDP data are available, for example at the sub-national level, or GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
 
 This package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
 
@@ -12,9 +12,9 @@ Note about the DMSP night light images: There are several versions of DMSP satel
 
 ## nightlight_download
 
-You will want to use this function first if you want to start working with night light satellite data. The function is simply a tool that facilitates downloading the data, so you don't have to do that by hand.
+You will want to use this function first if you want to start working with night light satellite data. The function is simply a tool that facilitates downloading the data, so you do not have to do that by hand.
 
-A note about the disk space used by the files: The yearly data are of lower resolution than the monthly data and take up less space (1 year image for the whole world = 1/16 space of a monthly image for the whole world). Hence, yearly data will probably be fine on your normal drive (all years together ca. 45 GB incl. quality indicator files), but working with monthly data likely requires an external drive (about 1.5+ TB for all files incl. quality indicator files). Quality indicator files (recognizable by the ending cf_cvg) show how many observations went into the value of a pixel in the aggregated night light image.
+A note about the disk space used by the files: The yearly data are of lower resolution than the monthly data and take up less space (1 year image for the whole world = 1/16 space of a monthly image for the whole world). Hence, yearly data will probably be fine on your normal drive (all years together ca. 45 GB incl. quality indicator files), but working with monthly data likely requires an external drive (about 1.5+ TB for all files incl. quality indicator files). Quality indicator files (recognizable by the ending cf_cvg) show how many observations went into the value of a pixel in the aggregated night light image in a given period.
 
 For the yearly data, you can just use the `time` argument. The DMSP data are available per year in one image for the whole world. To download all of the data at once, you can input:
 
@@ -23,7 +23,7 @@ For the yearly data, you can just use the `time` argument. The DMSP data are ava
     shapefile_location = "D:/shapefiles",
     light_location = "D:"/nightlights)
 
-The monthly data is a bit more tricky. VIIRS images divide the whole world into 6 geographic tiles. You have the option of either downloading only the tile you need (by inputting geographic information, either through coordinates or using a shapefile) or by downloading all 6 tiles (by providing no geographic information). Note: it may happen that the region you want to analyze is overlapping on two or more of these tiles. In that case, all of them will be downloaded.
+The monthly data are a bit more tricky. VIIRS images divide the whole world into 6 geographic tiles. You have the option of either downloading only the tile you need (by inputting geographic information, either through coordinates or using a shapefile) or by downloading all 6 tiles (by providing no geographic information). Note: it may happen that the region you want to analyze is overlapping on two or more of these tiles. In that case, all of them will be downloaded.
 
 For example, if you only want to analyze the night lights of Germany in the year 2013, you can input:
 
@@ -40,7 +40,7 @@ or
     light_location = "D:"/nightlights)
     user_coordinates = c(5.866, 15.042, 47.270, 55.057)
 
-In the first example, the shapefile of Germany will automatically be downloaded from the GADM database (only possible for countries!), or, if there is already a shapefile for Germany present in your shapefile location, it will automatically be detected. In the second example, you simply provide the minium and maximum coordinates of Germany. The downloaded tile (in this case just one) of the VIIRS data will be the same, but no shapefile will be downloaded from GADM.
+In the first example, the shapefile of Germany will automatically be downloaded from the GADM database (only possible for countries!), or, if there is already a shapefile for Germany present in your `shapefile_location`, it will automatically be detected. In the second example, you simply provide the minium and maximum coordinates of Germany. The downloaded tile (in this case just one) of the VIIRS data will be the same, but no shapefile will be downloaded from GADM.
 
 ## nightlight_calculate
 
@@ -57,11 +57,11 @@ For example, if you want to get a dataframe for the DMSP night lights in adm 1 r
 
 which will give you this dataframe called "lights" in the R environment:
 
-<img src="screenshot_calculate_luxembourg_adm1.png" width="730">
+<img src="screenshot_calculate_luxembourg_adm1.png" width="710">
 
-You can see that there are some useful default output elements. Firstly, you get the name of the are you input in `area_names`. If there is an ISO3 countrycode in case this area is a country, this will be registered and output as well. The area in square kilometers will automatically be calculated and output based on your shapefiles or coordinates, so you can easily integrate it into further calculations. NAME_1 indicates the names of the adm 1 regions of Luxembourg. Columns with lower-level administrative names will only appear if you specify the adm level in the argument `admlevel` (default is 0, which refers to country borders for countries or does nothing in case your shapefile is e.g. a city or other region not captured by the administrative district units). mean_obs refers to the mean number of observations per pixel that went into the aggregated image for a time period in a given area. Useful default calculations are the sum of the light values in your area and their mean. Outliers can easily be identfied with the minimum and maximum light values. 
+You can see that there are some useful default output elements. Firstly, you get the name of the are you input in `area_names`. If there is an ISO3 countrycode in case this area is a country, this will be registered and output as well. The area in square kilometers will automatically be calculated based on your shapefiles or coordinates, so you can easily integrate it into further calculations. NAME_1 indicates the names of the adm 1 regions of Luxembourg. Columns with lower-level administrative names will only appear if you specify the adm level in the argument `admlevel` (the default is 0, which refers to country borders for countries or does nothing in case your shapefile is e.g. a city or other region not included in a system of administrative districts). mean_obs refers to the mean number of observations per pixel that went into the aggregated image for a time period in a given area. Useful default calculations are the sum of the light values in your area and their mean. Outliers can easily be identfied with the minimum and maximum light values. 
 
-You can, however, use any function for the calculations that you wish. You have to load it into your environment first in case it is user-written function. Existing functions from base R or packages work as well. Then, you can input the name of the R object as a string into a vector using the argument `functions_calculate`. The function has to accept an `na.rm` argument. In case it does not, you have to wrap the function accordingly. If encountering problems, check the documentation of `raster::extract`, into which all functions are fed. The `raster::extract` function sets the conditions for which other functions than the default settings work.
+You can, however, use any function for the calculations that you wish. You have to load it into your environment first in case it is a user-written function. Existing functions from base R or packages work as well. Then, you can input the name of the R object as a string into a vector using the argument `functions_calculate`. The function has to accept an `na.rm` argument. In case it does not, you have to wrap the function accordingly. If encountering problems, check the documentation of `raster::extract`, into which all functions are fed. The `raster::extract` function sets the conditions for which other functions than the default settings work.
 
 Other useful arguments in `nightlight_calculate`, for which you can consult the helpfiles for further details about their specific usage are:
 
@@ -75,7 +75,7 @@ Other useful arguments in `nightlight_calculate`, for which you can consult the 
 
 ## nightlight_plot
 
-This function allows to plot a shapefile with its night lights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for area_names and a timespan for time, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number of objects can be loaded into your environment quickly.
+This function allows to plot a shapefile with its night lights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for `area_names` and a timespan for `time`, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number of objects can be loaded into your environment quickly.
 
 The basic input arguments are the same as for the other functions. For example, if you input:
 
@@ -86,7 +86,7 @@ The basic input arguments are the same as for the other functions. For example, 
     light_location = "D:/nightlights",
     admlevel = 1)
 
-You get the following image, either by already having the shapefile for Germany adm1 stored in your `shapefile_location` or, if this is not the case, by an automatic download of the shapefile from GADM.
+You get the following image, either by already having the shapefile for Germany adm1 stored in your `shapefile_location`, or, if this is not the case, by the function automatically downloading the shapefile from GADM.
 
 <img src="germany_adm1.png" width="300">
 
@@ -102,11 +102,11 @@ In case you input a set of coordinates, you will get an image with a rectangular
 
 - You could use a pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018).
 
-- There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (Abrahams et al., 2018).
+- There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (see Abrahams et al., 2018).
 
-- The monthly data lack values for summer months when a region is not close to equator due to stray light at summer nights when the sun sets late. This is an issue with the DMSP data as well, but since there are yearly composite images for the DMSP data, it is not directly visible. However, fewer values of the summer months have gone into calculating the yearly composite image the further you away from the equator.
+- The monthly data lack values for summer months when a region is not close to equator due to stray light during summer nights when the sun sets late. This is an issue with the DMSP data as well, but since there are yearly composite images for the DMSP data, it is not directly visible. However, fewer values of the summer months have gone into calculating the yearly composite image the further you go away from the equator.
 
-- Snowfall in winter influences light reflection and increases brightness depending on the amount of snowfall. This point and the previous one can nicely be illustrated by looking at the mean of light values of Moscow, a bright city with a lot of snow in winter and a large distance to the equator. You can see that the summer months are not available and that the values in winter fluctuate strongly.
+- Snowfall in winter influences light reflection and increases brightness depending on the amount of snowfall. This point and the previous one can nicely be illustrated by looking at the mean of light values of Moscow, a bright city with a lot of snow in winter and a large distance to the equator. You can see that values for the summer months are not available and that the values in the winter months fluctuate strongly.
 
 <figure>
   <img src="moscow.png" width="600">
