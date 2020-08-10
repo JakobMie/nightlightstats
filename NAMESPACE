@@ -13,3 +13,4 @@ importFrom(ggplot2, ggplot, geom_tile, coord_quickmap, coord_map, labs, theme, s
 importFrom(plotrix, smoothColors)
 importFrom(rgeos, gIntersection)
 importFrom(methods, as)
+importFrom(readr, write_rds)

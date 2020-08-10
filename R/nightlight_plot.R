@@ -392,25 +392,30 @@ nightlight_plot <- function(area_names,
       extent_bbox <- sp::bbox(extent)
     }
 
+    xmin = extent_bbox[1,1]
+    xmax = extent_bbox[1,2]
+    ymin = extent_bbox[2,1]
+    ymax = extent_bbox[2,2]
+
     # search for tiles on which the shapefile is located
     if (lightdata_time == "monthly"){
       tilenumbers <- c()
-      if (extent_bbox[2,2] > 0 & c(extent_bbox[1,1] < -60 | extent_bbox[1,2] < -60)){
+      if (ymax > 0 & c(xmin < -60 | xmax < -60)){
         tilenumbers <- append(tilenumbers, "1")
       }
-      if (extent_bbox[2,2] > 0 & c(c(extent_bbox[1,1] > -60 & extent_bbox[1,1] < 60) | c(extent_bbox[1,2] > -60 & extent_bbox[1,2] < 60))){
+      if (ymax > 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
         tilenumbers <- append(tilenumbers, "2")
       }
-      if (extent_bbox[2,2] > 0 & c(extent_bbox[1,1] > 60 | extent_bbox[1,2] > 60)){
+      if (ymax > 0 & c(xmin > 60 | xmax > 60)){
         tilenumbers <- append(tilenumbers, "3")
       }
-      if (extent_bbox[2,1] < 0 & c(extent_bbox[1,1] < -60 | extent_bbox[1,2] < -60)){
+      if (ymin < 0 & c(xmin < -60 | xmax < -60)){
         tilenumbers <- append(tilenumbers, "4")
       }
-      if (extent_bbox[2,1] < 0 & c(c(extent_bbox[1,1] > -60 & extent_bbox[1,1] < 60) | c(extent_bbox[1,2] > -60 & extent_bbox[1,2] < 60))){
+      if (ymin < 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
         tilenumbers <- append(tilenumbers, "5")
       }
-      if (extent_bbox[2,1] < 0 & c(extent_bbox[1,1] > 60 | extent_bbox[1,2] > 60)){
+      if (ymin < 0 & c(xmin > 60 | xmax > 60)){
         tilenumbers <- append(tilenumbers, "6")
       }
       if (length(tilenumbers) > 1){
@@ -482,40 +487,49 @@ nightlight_plot <- function(area_names,
         }
 
         if (lightdata_time == "monthly"){
-          list_light <- list.files(paste0(light_location), pattern = "avg_rade9")
+          list_light <-  list.files(paste0(light_location), pattern = "avg_rade9")
           lightfile <- list_light[grep(".tif", list_light)]
           lightfile <- lightfile[grep(yearmonthspan, lightfile)]
           lightfile <- lightfile[grep(tilestump, lightfile)]
-          lightfile <- paste0(light_location, "/", lightfile)
-          lightfile <- raster::raster(lightfile)
-          lightfile <- raster::crop(lightfile, extent)
-          if (t == 1){
-            lightdata <- lightfile
-          }
-          if (overlapping_tile == TRUE & t > 1){
-            lightdata <- raster::merge(lightdata, lightfile)
+          if (length(lightfile) == 1){
+            lightfile <- paste0(light_location, "/", lightfile)
+            lightfile <- raster::raster(lightfile)
+            lightfile <- raster::crop(lightfile, extent)
+            if (t == 1){
+              lightdata <- lightfile
+            }
+            if (overlapping_tile == TRUE & t > 1){
+              lightdata <- raster::merge(lightdata, lightfile)
+            }
+          } else {
+            stop(paste0("The night light file for ", month, "/", year, " could not be found in your light location."))
           }
 
           list_quality <- list.files(paste0(light_location), pattern = "cf_cvg")
           qualityfile <- list_quality[grep(".tif", list_quality)]
           qualityfile <- qualityfile[grep(yearmonthspan, qualityfile)]
           qualityfile <- qualityfile[grep(tilestump, qualityfile)]
-          qualityfile <- paste0(light_location, "/", qualityfile)
-          qualityfile <- raster::raster(qualityfile)
-          qualityfile <- raster::crop(qualityfile, extent)
-          if (t == 1){
-            qualitydata <- qualityfile
+          if (length(qualityfile) == 1){
+            qualityfile <- paste0(light_location, "/", qualityfile)
+            qualityfile <- raster::raster(qualityfile)
+            qualityfile <- raster::crop(qualityfile, extent)
+            if (t == 1){
+              qualitydata <- qualityfile
+            }
+            if (overlapping_tile == TRUE & t > 1){
+              qualitydata <- raster::merge(qualitydata, qualityfile)
+            }
+            rm(lightfile)
+            rm(qualityfile)
+          } else {
+            stop(paste0("The quality file for ", month, "/", year, " could not be found in your light location."))
           }
-          if (overlapping_tile == TRUE & t > 1){
-            qualitydata <- raster::merge(qualitydata, qualityfile)
-          }
-          rm(lightfile)
-          rm(qualityfile)
 
         } else if (lightdata_time == "yearly"){
 
           # select consistent dmsp version according to the start/ end of the time sequence.
           # otherwise choose the newest dmsp version for each year
+          # check if the required files exist
           F10_years = as.character(seq(1992, 1994, by = 1))
           F12_years = as.character(seq(1994, 1999, by = 1))
           F14_years = as.character(seq(1997, 2003, by = 1))
@@ -582,16 +596,42 @@ nightlight_plot <- function(area_names,
           lightdata <- list_light[grep("stable", list_light)]
           lightdata <- lightdata[grep(dmsp_stump, lightdata)]
           lightdata <- lightdata[grep(year, lightdata)]
-          lightdata <- paste0(light_location, "/", lightdata)
-          lightdata <- raster::raster(lightdata)
-          lightdata <- raster::crop(lightdata, extent)
+          if (length(lightdata) == 1){
+            lightdata <- paste0(light_location, "/", lightdata)
+            lightdata <- raster::raster(lightdata)
+            lightdata <- raster::crop(lightdata, extent)
+          } else { # if user does not have this version of the light file, search if there is
+            # another one, only defined by year. since there are max. 2 versions per year,
+            # this should find the other one if it is there. if not, the error message will occur
+            lightdata <- list_light[grep("stable", list_light)]
+            lightdata <- lightdata[grep(year, lightdata)]
+            if (length(lightdata) == 1){
+              lightdata <- paste0(light_location, "/", lightdata)
+              lightdata <- raster::raster(lightdata)
+              lightdata <- raster::crop(lightdata, extent)
+            } else {
+              stop(paste0("The night light file for ", year, " could not be found in your light location."))
+            }
+          }
 
           list_quality <- list.files(light_location, pattern = "cf_cvg.tif")
           qualitydata <- list_quality[grep(dmsp_stump, list_quality)]
           qualitydata <- qualitydata[grep(year, qualitydata)]
-          qualitydata <- paste0(light_location, "/", qualitydata)
-          qualitydata <- raster::raster(qualitydata)
-          qualitydata <- raster::crop(qualitydata, extent)
+          if (length(qualitydata) == 1){
+            qualitydata <- paste0(light_location, "/", qualitydata)
+            qualitydata <- raster::raster(qualitydata)
+            qualitydata <- raster::crop(qualitydata, extent)
+          } else { # same as above with the light file
+            qualitydata <- list_quality[grep(year, list_quality)]
+            if (length(qualitydata) == 1){
+              qualitydata <- paste0(light_location, "/", qualitydata)
+              qualitydata <- raster::raster(qualitydata)
+              qualitydata <- raster::crop(qualitydata, extent)
+            } else {
+              stop(paste0("The quality file for ", year, " could not be found in your light location."))
+            }
+          }
+
         }
       }
 

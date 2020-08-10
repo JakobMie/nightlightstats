@@ -78,59 +78,41 @@ nightlight_download <- function(area_names = "world",
     stump3 <- ".v4.tar"
 
     for (j in 1:length(sequence)){
-
       year <- sequence[j]
-
       if (year == "1992" |
           year == "1993"){
-
         stump2_all <- paste0("F10", year)
-
       } else if (year == "1994"){
-
         stump2_all <- c(paste0("F10", year),
                     paste0("F12", year))
-
       } else if (year == "1995" |
                  year == "1996"){
-
         stump2_all <- paste0("F12", year)
-
       } else if (year == "1997" |
                  year == "1998" |
                  year == "1999"){
-
         stump2_all <- c(paste0("F12", year),
                     paste0("F14", year))
-
       } else if (year == "2000" |
                  year == "2001" |
                  year == "2002" |
                  year == "2003"){
-
         stump2_all <- c(paste0("F14", year),
                     paste0("F15", year))
-
       } else if (year == "2004" |
                  year == "2005" |
                  year == "2006" |
                  year == "2007"){
-
         stump2_all <- c(paste0("F15", year),
                     paste0("F16", year))
-
       } else if (year == "2008" |
                  year == "2009"){
-
         stump2_all <- paste0("F16", year)
-
       } else if (year == "2010" |
                  year == "2011" |
                  year == "2012" |
                  year == "2013"){
-
         stump2_all <- paste0("F18", year)
-
       }
 
       if (year == "2010"){
@@ -589,25 +571,30 @@ nightlight_download <- function(area_names = "world",
           extent_bbox <- sp::bbox(extent)
         }
 
+        xmin = extent_bbox[1,1]
+        xmax = extent_bbox[1,2]
+        ymin = extent_bbox[2,1]
+        ymax = extent_bbox[2,2]
+
         # search for tiles on which the shapefile is located
         if (lightdata_time == "monthly"){
           tilenumbers <- c()
-          if (extent_bbox[2,2] > 0 & c(extent_bbox[1,1] < -60 | extent_bbox[1,2] < -60)){
+          if (ymax > 0 & c(xmin < -60 | xmax < -60)){
             tilenumbers <- append(tilenumbers, "1")
           }
-          if (extent_bbox[2,2] > 0 & c(c(extent_bbox[1,1] > -60 & extent_bbox[1,1] < 60) | c(extent_bbox[1,2] > -60 & extent_bbox[1,2] < 60))){
+          if (ymax > 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
             tilenumbers <- append(tilenumbers, "2")
           }
-          if (extent_bbox[2,2] > 0 & c(extent_bbox[1,1] > 60 | extent_bbox[1,2] > 60)){
+          if (ymax > 0 & c(xmin > 60 | xmax > 60)){
             tilenumbers <- append(tilenumbers, "3")
           }
-          if (extent_bbox[2,1] < 0 & c(extent_bbox[1,1] < -60 | extent_bbox[1,2] < -60)){
+          if (ymin < 0 & c(xmin < -60 | xmax < -60)){
             tilenumbers <- append(tilenumbers, "4")
           }
-          if (extent_bbox[2,1] < 0 & c(c(extent_bbox[1,1] > -60 & extent_bbox[1,1] < 60) | c(extent_bbox[1,2] > -60 & extent_bbox[1,2] < 60))){
+          if (ymin < 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
             tilenumbers <- append(tilenumbers, "5")
           }
-          if (extent_bbox[2,1] < 0 & c(extent_bbox[1,1] > 60 | extent_bbox[1,2] > 60)){
+          if (ymin < 0 & c(xmin > 60 | xmax > 60)){
             tilenumbers <- append(tilenumbers, "6")
           }
           if (length(tilenumbers) > 1){

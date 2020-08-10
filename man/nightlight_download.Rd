@@ -21,7 +21,7 @@ user_coordinates = NULL)
 
 \item{light_location}{May not be empty. Provide the location where you store your light files on your drive as a string.}
 
-\item{shapefile_location}{May be empty. Provide the location of the shapefiles on your drives as a string in the case that you want to use shapefiles and not a set of coordinates.}
+\item{shapefile_location}{May be empty. Provide the location of the shapefiles on your drive as a string in the case that you want to use shapefiles and not a set of coordinates.}
 
 \item{shapefiles}{May be empty. You can provide own shapefiles here (input are the filenames) if no automatic download is desired. If there is a shapefile in your shapfile location that has either the name of the region which you enter in area_names or the ISO3 of the country (if it is a country) in its filename, it will be detected automatically and you do not have to use this argument.}
 
