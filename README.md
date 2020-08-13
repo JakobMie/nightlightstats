@@ -1,20 +1,20 @@
 # nightlightstats
 
-Night light satellite data can be useful as a proxy for economic activity in a region for which no GDP data are available, for example at the sub-national level, or if GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
+Night light satellite data can be useful as a proxy for economic activity in regions for which no GDP data are available (for example at the sub-national level) or for regions in which GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
 
 This package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
 
-You can either work with yearly DMSP data ranging from 1992 to 2013 (https://www.ngdc.noaa.gov/eog/dmsp/downloadV4composites.html - Image and data processing by NOAA's National Geophysical Data Center, DMSP data collected by US Air Force Weather Agency) or monthly VIIRS data beginning in Apr 2012 (https://eogdata.mines.edu/download_dnb_composites.html - Earth Observation Group, Payne Institute for Public Policy). The package (if desired) automatically downloads country-level spatial data from GADM (https://gadm.org/data.html).
+You can either work with yearly DMSP data ranging from 1992 to 2013 (https://www.ngdc.noaa.gov/eog/dmsp/downloadV4composites.html - Image and data processing by NOAA's National Geophysical Data Center, DMSP data collected by US Air Force Weather Agency) or monthly VIIRS data beginning in Apr 2012 (https://eogdata.mines.edu/download_dnb_composites.html - Earth Observation Group, Payne Institute for Public Policy). The package (if desired) automatically downloads spatial data for any administrative level by country from GADM (https://gadm.org/data.html).
  
 At the time of writing, the yearly VIIRS data are not uploaded so the package does not process these data. Please contact the authors if you notice that this has changed. 
 
-Note about the DMSP night light images: There are several versions of DMSP satellites. For some years, these versions overlap and there are two images available for a year. `nightlight_download` always downloads both. Then, for `nightlight_calculate` and `nightlight_plot`, the versions to be used will be chosen based on the timespan you input into the functions. If possible, a consistent version for your timespan will be chosen. If 2 consistent versions are available for your timespan, the newer one will be selected. If no consistent version is available, the newest version for each year will be chosen.
+Note about the DMSP night light images: There are several versions of DMSP satellites. For some years, these versions overlap and there are two images available for a year. `nightlight_download` always downloads both. Then, for `nightlight_calculate` and `nightlight_plot`, the versions to be used will be chosen based on the timespan you input into the functions. If possible, a consistent version for your timespan will be chosen. If 2 consistent versions are available for your timespan, the newer one will be selected. If no consistent version is available, the newest version for each year will be chosen. A consistent version is generally desirable, since the light intensity scale is relative and the measured values could thus depend on the features of the satellite.
 
 ## nightlight_download
 
 You will want to use this function first if you want to start working with night light satellite data. The function is simply a tool that facilitates downloading the data, so you do not have to do that by hand.
 
-A note about the disk space used by the files: The yearly data are of lower resolution than the monthly data and take up less space (1 year image for the whole world = 1/16 space of a monthly image for the whole world). Hence, yearly data will probably be fine on your normal drive (all years together ca. 45 GB incl. quality indicator files), but working with monthly data likely requires an external drive (about 1.5+ TB for all files incl. quality indicator files). Quality indicator files (recognizable by the ending cf_cvg) show how many observations went into the value of a pixel in the aggregated night light image in a given period.
+A note about the disk space used by the files: The yearly data are of lower resolution than the monthly data and take up less space (1 yearly DMSP image for the whole world = 1/16 space of a monthly VIIRS image for the whole world). Hence, yearly data will probably be fine on your normal drive (all years together ca. 45 GB incl. quality indicator files), but working with monthly data likely requires an external drive (about 1.5+ TB for all files incl. quality indicator files). Quality indicator files (recognizable by the ending cf_cvg) show how many observations went into the value of a pixel in the aggregated night light image in a given period.
 
 For the yearly data, you can just use the `time` argument. The DMSP data are available per year in one image for the whole world. To download all of the data at once, you can input:
 
@@ -97,15 +97,15 @@ In case you input a set of coordinates, you will get an image with a rectangular
 
 - The code is not explicitly written for fast performance.
 
-- The yearly DMSP data are of suboptimal quality. Problems are a lower resolution and more blooming/blurring of the lights compared to the VIIRS data. Moreover, the DMSP data feature a discrete scale that is top-coded at a digital number of 63, compared to the VIIRS data which have a continuous scale and no top-coding. Detection for low illumination ranges is also better in VIIRS.
+- The yearly DMSP data are of suboptimal quality. Problems are for example a lower resolution and more blooming/blurring of the lights compared to the VIIRS data. Moreover, the DMSP data feature a discrete scale that is top-coded at a digital number of 63, compared to the VIIRS data which have a continuous scale and no top-coding. Detection for low illumination ranges is also better in VIIRS.
 
 - You could use a pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018).
 
 - There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (see Abrahams et al., 2018).
 
-- The monthly data lack values for summer months when a region is not close to equator due to stray light during summer nights when the sun sets late. This is an issue with the DMSP data as well, but since there are yearly composite images for the DMSP data, it is not directly visible. However, fewer values of the summer months have gone into calculating the yearly composite image the further you go away from the equator.
+- Temporal consistency is not an issue for VIIRS data, since the light values are calibrated to match a scale measuring nanoWatt/cm2/steradian. DMSP data, on the other hand, are not calibrated and hence might not be perfectly comparable across satellite versions or even across years within a satellite version. The package tries to mitigate this issue by using consistent satellite versions where possible. In an econometric analysis, satellite version fixed effects and year fixed effects are advisable (see e.g. Gibson et al., 2020).
 
-- Snowfall in winter influences light reflection and increases brightness depending on the amount of snowfall. This point and the previous one can nicely be illustrated by looking at the mean of light values of Moscow, a bright city with a lot of snow in winter and a large distance to the equator. You can see that values for the summer months are not available and that the values in the winter months fluctuate strongly.
+- Seasonal fluctuations influence data quality. The data often lack values for summer months due to stray light during summer nights when the sun sets late. Snowfall in winter influences light reflection and increases brightness depending on the amount of snowfall. This point and the previous one can nicely be illustrated by looking at the mean of light values of Moscow, a bright city with a lot of snow in winter and a large distance to the equator and hence long summer nights. You can see that values for the summer months are not available and that the values in the winter months fluctuate strongly, likely due to fluctuations in snowfall.
 
 <figure>
   <img src="moscow.png" width="600">
@@ -117,5 +117,7 @@ In case you input a set of coordinates, you will get an image with a rectangular
 - Abrahams, A., Oram, C., & Lozano-Gracia, N. (2018). Deblurring DMSP nighttime lights: A new method using Gaussian filters and frequencies of illumination. Remote Sensing of Environment, 210, 242-258.
 
 - Bluhm, R. & Krause, M. (2018). Top lights - Bright cities and their contribution to economic development. CESifo Working Paper No. 7411.
+
+- Gibson, J., Olivia, S. Boe-Gibson, G. (2020). Night lights in economics: Sources and uses. CSAE Working Paper Series 2020-01, Centre for the Study of African Economies, University of Oxford.
 
 - Henderson, J. V., Storeygard, A., & Weil, D. N. (2012). Measuring economic growth from outer space. American Economic Review, 102(2).
