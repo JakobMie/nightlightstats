@@ -87,7 +87,7 @@ The basic input arguments are the same as for the other functions. For example, 
 
 You get the following image, either by already having the shapefile for Germany adm1 stored in your `shapefile_location`, or, if this is not the case, by the function automatically downloading the shapefile from GADM.
 
-<img src="germany_adm1.png" width="300">
+<img src="germany_adm1.png" width="270">
 
 In case you want to download a region that is not availale on GADM (i.e. a region that is not a country), you must have the shapefile in your `shapefile_location`, so the function can detect it according to the name you give in `area_names`. If this fails, there is always the option to use the `shapefiles` argument and just give the filenames.
 
