@@ -719,6 +719,10 @@ nightlight_calculate <- function(area_names,
       # end sourcefile "get_lightfile"
 
 
+      if (rawdata == TRUE){
+        lightdata_uncut <- lightdata
+        qualitydata_uncut <- qualitydata
+      }
       lightdata[qualitydata <= cut_quality] <- NA
       qualitydata[qualitydata <= cut_quality] <- NA # also set this to NA so later the mean of observations per pixel is calculated only for pixels above the cut_quality threshold
 
@@ -815,9 +819,9 @@ nightlight_calculate <- function(area_names,
       all_aggregated <- rbind(all_aggregated, aggregated)
 
       if (rawdata == TRUE){
-        rawdata_values <- data.frame(suppressWarnings(raster::extract(lightdata, shapefile, cellnumbers = TRUE)))
-        rawdata_values <- cbind(rawdata_values, raster::coordinates(lightdata)[rawdata_values[,1],])
-        rawdata_quality <- data.frame(suppressWarnings(raster::extract(qualitydata, shapefile, cellnumbers = TRUE)))
+        rawdata_values <- data.frame(suppressWarnings(raster::extract(lightdata_uncut, shapefile, cellnumbers = TRUE)))
+        rawdata_values <- cbind(rawdata_values, raster::coordinates(lightdata_uncut)[rawdata_values[,1],])
+        rawdata_quality <- data.frame(suppressWarnings(raster::extract(qualitydata_uncut, shapefile, cellnumbers = TRUE)))
         rawdata_values <- cbind(rawdata_values, rawdata_quality$value)
         colnames(rawdata_values)[colnames(rawdata_values) == "rawdata_quality$value"] <- "number_obs"
         colnames(rawdata_values)[colnames(rawdata_values) == "cell"] <- "cellnumber"
