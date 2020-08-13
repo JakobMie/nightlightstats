@@ -58,23 +58,23 @@ which will give you this dataframe called "lights" in the R environment:
 
 <img src="screenshot_calculate_luxembourg_adm1.png" width="710">
 
-You can see that there are some useful default output elements. Firstly, you get the name of the are you input in `area_names`. If there is an ISO3 countrycode in case this area is a country, this will be registered and output as well. The area in square kilometers will automatically be calculated based on your shapefiles or coordinates, so you can easily integrate it into further calculations. NAME_1 indicates the names of the adm 1 regions of Luxembourg. Columns with lower-level administrative names will only appear if you specify the adm level in the argument `admlevel` (the default is 0, which refers to country borders for countries or does nothing in case your shapefile is e.g. a city or other region not included in a system of administrative districts). mean_obs refers to the mean number of observations per pixel that went into the aggregated image for a time period in a given area. Useful default calculations are the sum of the light values in your area and their mean. Outliers can easily be identfied with the minimum and maximum light values. 
+You can see that there are some useful default output elements. Firstly, you get the name of the area you input in `area_names`. If there is an ISO3 countrycode in case this area is a country, this will be registered and output as well. The area in square kilometers will automatically be calculated based on your shapefiles or coordinates, so you can easily integrate it into further calculations. NAME_1 indicates the names of the adm 1 regions of Luxembourg. Columns with lower-level administrative names will only appear if you specify the adm level in the argument `admlevel` (the default is 0, which refers to country borders for countries or does nothing in case your shapefile is e.g. a city or other region not included in a system of administrative districts). mean_obs refers to the mean number of observations per pixel that went into the aggregated image for a time period in a given area. Useful default calculations are the sum of the light values in your area and their mean. Outliers can easily be identfied with the minimum and maximum light values. 
 
-You can, however, use any function for the calculations that you wish. You have to load it into your environment first in case it is a user-written function. Existing functions from base R or packages work as well. Then, you can input the name of the R object as a string into a vector using the argument `functions_calculate`. The function has to accept an `na.rm` argument. In case it does not, you have to wrap the function accordingly. If encountering problems, check the documentation of `raster::extract`, into which all functions are fed. The `raster::extract` function sets the conditions for which other functions than the default settings work.
+You can, however, use any function for the calculations that you wish. You have to load it into your environment first in case it is a user-written function. Existing functions from base R or packages work as well. Then, you can input the name of the R object as a string into a vector using the argument `functions_calculate`. The function has to accept an `na.rm` argument. In case it does not, you have to wrap the function accordingly. If encountering problems, check the documentation of `raster::extract`, into which all functions are fed. This function sets the conditions for which other functions than the default settings work.
 
 Other useful arguments in `nightlight_calculate`, for which you can consult the helpfiles for further details about their specific usage are:
 
-- `rawdata`: This argument allows to output a dataframe with simply the raw light pixels and their values and coordinates for each region and time period additionally to the standard dataframe.
+- `rawdata`: This argument allows to output a dataframe with simply the raw light pixels and their values and coordinates for each region and time period additionally to the standard processed dataframe.
 
 - `cut_low`, `cut_high`, `cut_quality`: These arguments allow to exclude certain pixels from the calculation. If desired, any values smaller than `cut_low`, any values larger than `cut_high` and any pixels with number of observations less or equal to `cut_quality` will be set to NA. The default setting for `cut_quality` is 0, which means that pixels with 0 observations in a time period will be set to NA.
 
-- `rectangle_calculate`: In case your shapefile does not feature an enclosed area with which calculations can be performed, the code will automatically transform your shapefile into a rectangle based on the minimum/maximum x- and y-coordinates. If this for some reason does not work, you can set this to TRUE or FALSE manually (the default is NULL, which activates automatic detection). You can see an illustration of what the code would do in case you input a shapefile with a non-enclosed area below (in this case the railway system of Ulm).
+- `rectangle_calculate`: In case your shapefile does not feature an enclosed area with which calculations can be performed, the code will automatically transform your shapefile into a rectangle based on the minimum/maximum x- and y-coordinates. If this for some reason does not work, you can set this to TRUE or FALSE manually (the default is NULL, which activates automatic detection, but for non-standard shapefiles the detection might fail). Below, you can see an illustration of what the code would do in case you input this shapefile with a non-enclosed area (the railway system of Ulm, Germany).
 
 <img src="rectangle_ulm.png" width="550">
 
 ## nightlight_plot
 
-This function allows to plot a shapefile with its night lights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for `area_names` and a timespan for `time`, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into the global environment as ggplot objects, hence a large number of objects can be loaded into your environment quickly.
+This function allows to plot a shapefile with its night lights for a given period of time. Note: even though it is possible to produce multiple plots by using multiple inputs for `area_names` and a timespan for `time`, you should pay attention to the number of plots that will be produced this way - all plots will be loaded into your global environment as ggplot objects, hence a large number of objects can be loaded into your environment quickly.
 
 The basic input arguments are the same as for the other functions. For example, if you input:
 
@@ -89,15 +89,15 @@ You get the following image, either by already having the shapefile for Germany 
 
 <img src="germany_adm1.png" width="270">
 
-In case you want to download a region that is not availale on GADM (i.e. a region that is not a country), you must have the shapefile in your `shapefile_location`, so the function can detect it according to the name you give in `area_names`. If this fails, there is always the option to use the `shapefiles` argument and just give the filenames.
+In case you want to plot a region that is not availale on GADM (i.e. a region that is not a country), you must have the downloaded shapefile in your `shapefile_location`, so the function can detect it according to the name you give in `area_names`. If this fails, there is always the option to use the `shapefiles` argument and just give the filenames of the shapefiles instead (you still have to set the `area_names` for the naming of the output).
 
-In case you input a set of coordinates, you will get an image with a rectangular shapefile constructed using your coordinates.
+In case you input a set of coordinates, you will get an image with a rectangular shapefile constructed from your coordinates.
 
 ## Caveats and limitations of the package and the data
 
 - The code is not explicitly written for fast performance.
 
-- The yearly DMSP data are of suboptimal quality. Problems are a lower resolution and more blooming/blurring of the lights compared to the VIIRS data. Moreover, the DMSP data feature a discrete scale that is top-coded at a digital number of 63, compared to the VIIRS data which have a continuous scale and no top-coding.
+- The yearly DMSP data are of suboptimal quality. Problems are a lower resolution and more blooming/blurring of the lights compared to the VIIRS data. Moreover, the DMSP data feature a discrete scale that is top-coded at a digital number of 63, compared to the VIIRS data which have a continuous scale and no top-coding. Detection for low illumination ranges is also better in VIIRS.
 
 - You could use a pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018).
 
