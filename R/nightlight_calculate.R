@@ -672,6 +672,8 @@ nightlight_calculate <- function(area_names,
             }
           }
 
+          print(paste0("The DMSP Version chosen for year ", year, " is ", dmsp_stump, "."))
+
           list_light <- list.files(light_location, pattern = "avg_vis.tif")
           lightdata <- list_light[grep("stable", list_light)]
           lightdata <- lightdata[grep(dmsp_stump, lightdata)]
