@@ -5,7 +5,8 @@ nightlight_download <- function(area_names = "world",
                                 shapefiles = NULL,
                                 download_shape = "sp.rds",
                                 admlevel = 0,
-                                user_coordinates = NULL){
+                                user_coordinates = NULL,
+                                corrected_lights = FALSE){
 
 
   # begin sourcefile "setup"
@@ -74,99 +75,159 @@ nightlight_download <- function(area_names = "world",
 
   if (lightdata_time == "yearly"){
 
-    stump1 <- "https://www.ngdc.noaa.gov/eog/data/web_data/v4composites/"
-    stump3 <- ".v4.tar"
+    if (corrected_lights == FALSE){
+      stump1 <- "https://www.ngdc.noaa.gov/eog/data/web_data/v4composites/"
+      stump3 <- ".v4.tar"
 
-    for (j in 1:length(sequence)){
-      year <- sequence[j]
-      if (year == "1992" |
-          year == "1993"){
-        stump2_all <- paste0("F10", year)
-      } else if (year == "1994"){
-        stump2_all <- c(paste0("F10", year),
-                    paste0("F12", year))
-      } else if (year == "1995" |
-                 year == "1996"){
-        stump2_all <- paste0("F12", year)
-      } else if (year == "1997" |
-                 year == "1998" |
-                 year == "1999"){
-        stump2_all <- c(paste0("F12", year),
-                    paste0("F14", year))
-      } else if (year == "2000" |
-                 year == "2001" |
-                 year == "2002" |
-                 year == "2003"){
-        stump2_all <- c(paste0("F14", year),
-                    paste0("F15", year))
-      } else if (year == "2004" |
-                 year == "2005" |
-                 year == "2006" |
-                 year == "2007"){
-        stump2_all <- c(paste0("F15", year),
-                    paste0("F16", year))
-      } else if (year == "2008" |
-                 year == "2009"){
-        stump2_all <- paste0("F16", year)
-      } else if (year == "2010" |
-                 year == "2011" |
-                 year == "2012" |
-                 year == "2013"){
-        stump2_all <- paste0("F18", year)
-      }
+      for (j in 1:length(sequence)){
+        year <- sequence[j]
+        if (year == "1992" |
+            year == "1993"){
+          stump2_all <- paste0("F10", year)
+        } else if (year == "1994"){
+          stump2_all <- c(paste0("F10", year),
+                          paste0("F12", year))
+        } else if (year == "1995" |
+                   year == "1996"){
+          stump2_all <- paste0("F12", year)
+        } else if (year == "1997" |
+                   year == "1998" |
+                   year == "1999"){
+          stump2_all <- c(paste0("F12", year),
+                          paste0("F14", year))
+        } else if (year == "2000" |
+                   year == "2001" |
+                   year == "2002" |
+                   year == "2003"){
+          stump2_all <- c(paste0("F14", year),
+                          paste0("F15", year))
+        } else if (year == "2004" |
+                   year == "2005" |
+                   year == "2006" |
+                   year == "2007"){
+          stump2_all <- c(paste0("F15", year),
+                          paste0("F16", year))
+        } else if (year == "2008" |
+                   year == "2009"){
+          stump2_all <- paste0("F16", year)
+        } else if (year == "2010" |
+                   year == "2011" |
+                   year == "2012" |
+                   year == "2013"){
+          stump2_all <- paste0("F18", year)
+        }
 
-      if (year == "2010"){
-        stump4 <- ".v4d"
-      } else if (year == "2011" |
-                 year == "2012" |
-                 year == "2013"){
-        stump4 <- ".v4c"
-      } else {
-        stump4 <- ".v4b"
-      }
+        if (year == "2010"){
+          stump4 <- ".v4d"
+        } else if (year == "2011" |
+                   year == "2012" |
+                   year == "2013"){
+          stump4 <- ".v4c"
+        } else {
+          stump4 <- ".v4b"
+        }
 
-      # test whether lightfile is already downloaded
-      # for years with multiple versions, do this for all versions
-      lightfile_test_all <- paste0(light_location, "/", stump2_all, stump4, "_web.stable_lights.avg_vis.tif")
+        # test whether lightfile is already downloaded
+        # for years with multiple versions, do this for all versions
+        lightfile_test_all <- paste0(light_location, "/", stump2_all, stump4, "_web.stable_lights.avg_vis.tif")
+        qualityfile_test_all <- paste0(light_location, "/", stump2_all, stump4, "_web.cf_cvg.tif")
 
-      for (g in 1:length(lightfile_test_all)){
+        for (g in 1:length(lightfile_test_all)){
 
-        lightfile_test <- lightfile_test_all[g]
-        stump2 <- stump2_all[g]
+          lightfile_test <- lightfile_test_all[g]
+          qualityfile_test <- qualityfile_test_all[g]
+          stump2 <- stump2_all[g]
 
-        if(!file.exists(lightfile_test)){
+          if(!file.exists(lightfile_test) | !file.exists(qualityfile_test)){
 
-          utils::download.file(url = paste0(stump1, stump2, stump3), destfile = paste0(light_location, "/", stump2, ".v4.tar"), mode = "wb")
-          utils::untar(paste0(light_location, "/", stump2, ".v4.tar"),
+            utils::download.file(url = paste0(stump1, stump2, stump3), destfile = paste0(light_location, "/", stump2, ".v4.tar"), mode = "wb")
+            utils::untar(paste0(light_location, "/", stump2, ".v4.tar"),
+                         exdir = paste0(light_location, "/"))
+
+            if (!file.exists(lightfile_test)){
+              lightfile <- list.files(light_location)
+              lightfile <- lightfile[grep(lightfile, pattern = "stable")]
+              lightfile <- lightfile[grep(lightfile, pattern = ".gz")]
+              lightfile <- lightfile[grep(lightfile, pattern = year)]
+              R.utils::gunzip(filename = paste0(light_location, "/", lightfile),
+                              destname = paste0(light_location, "/", stump2, stump4, "_web.stable_lights.avg_vis.tif"))
+            }
+
+            if (!file.exists(qualityfile_test)){
+              qualityfile <- list.files(light_location)
+              qualityfile <- qualityfile[grep(qualityfile, pattern = "cf_cvg")]
+              qualityfile <- qualityfile[grep(qualityfile, pattern = ".gz")]
+              qualityfile <- qualityfile[grep(qualityfile, pattern = year)]
+              R.utils::gunzip(filename = paste0(light_location, "/", qualityfile),
+                              destname = paste0(light_location, "/", stump2, stump4, "_web.cf_cvg.tif"))
+            }
+
+            remove_files <- list.files(light_location)
+            remove_files <- remove_files[grep(remove_files, pattern = stump2)]
+            remove_files <- remove_files[-grep(remove_files, pattern = "_web.stable_lights.avg_vis.tif")]
+            remove_files <- remove_files[-grep(remove_files, pattern = "_web.cf_cvg.tif")]
+            unlink(paste0(light_location, "/", remove_files), recursive = TRUE)
+
+          } else if (file.exists(lightfile_test) & file.exists(qualityfile_test)){
+            print(paste0("The light file and quality file for ", year, " are already downloaded."))
+          }
+
+        } # end test loop
+
+      } # end sequence loop
+
+    } else if (corrected_lights == TRUE){
+
+      stump1 <- "https://eogdata.mines.edu/wwwdata/dmsp/rad_cal/"
+      stump3 <- "_rad_v4"
+
+      for (j in 1:length(sequence)){
+        year <- sequence[j]
+
+        if (year == "1996"){
+          stump2 <- "F12_19960316-19970212"
+        } else if (year == "1999"){
+          stump2 <- "F12_19990119-19991211"
+        } else if (year == "2000"){
+          stump2 <- "F12-F15_20000103-20001229"
+        } else if (year == "2003"){
+          stump2 <- "F14-F15_20021230-20031127"
+        } else if (year == "2004"){
+          stump2 <- "F14_20040118-20041216"
+        } else if (year == "2006"){
+          stump2 <- "F16_20051128-20061224"
+        } else if (year == "2010"){
+          stump2 <- "F16_20100111-20101209"
+        } else {
+          next # sequence fills all years, so skip to next year if current one
+          # is not covered by corrected DMSP
+        }
+
+        # test whether lightfile and/or qualityfile is already downloaded
+        lightfile_test <- paste0(light_location, "/", stump2, stump3, ".avg_vis.tif")
+        qualityfile_test <- paste0(light_location, "/", stump2, stump3, ".cf_cvg.tif")
+
+        if(!file.exists(lightfile_test) | !file.exists(qualityfile_test)){
+
+          utils::download.file(url = paste0(stump1, stump2, stump3, ".geotiff.tgz"), destfile = paste0(light_location, "/", stump2, stump3, ".geotiff.tgz"), mode = "wb")
+          R.utils::gunzip(filename = paste0(light_location, "/", stump2, stump3, ".geotiff.tgz"),
+                          destname = paste0(light_location, "/", stump2, stump3, ".geotiff.tar"))
+          utils::untar(paste0(light_location, "/", stump2, stump3, ".geotiff.tar"),
                        exdir = paste0(light_location, "/"))
-
-          lightfile <- list.files(path = light_location)
-          lightfile <- lightfile[grep(lightfile, pattern = "stable")]
-          lightfile <- lightfile[grep(lightfile, pattern = ".gz")]
-          lightfile <- lightfile[grep(lightfile, pattern = year)]
-          R.utils::gunzip(filename = paste0(light_location, "/", lightfile),
-                          destname = paste0(light_location, "/", stump2, stump4, "_web.stable_lights.avg_vis.tif"))
-
-          qualityfile <- list.files(light_location)
-          qualityfile <- qualityfile[grep(qualityfile, pattern = "cf_cvg")]
-          qualityfile <- qualityfile[grep(qualityfile, pattern = ".gz")]
-          qualityfile <- qualityfile[grep(qualityfile, pattern = year)]
-          R.utils::gunzip(filename = paste0(light_location, "/", qualityfile),
-                          destname = paste0(light_location, "/", stump2, stump4, "_web.cf_cvg.tif"))
 
           remove_files <- list.files(light_location)
           remove_files <- remove_files[grep(remove_files, pattern = stump2)]
-          remove_files <- remove_files[-grep(remove_files, pattern = "_web.stable_lights.avg_vis.tif")]
-          remove_files <- remove_files[-grep(remove_files, pattern = "_web.cf_cvg.tif")]
+          remove_files <- remove_files[-grep(remove_files, pattern = "_rad_v4.avg_vis.tif")]
+          remove_files <- remove_files[-grep(remove_files, pattern = "_rad_v4.cf_cvg.tif")]
           unlink(paste0(light_location, "/", remove_files), recursive = TRUE)
 
-        } else if (file.exists(lightfile_test)){
-          print(paste0("Light file for ", year, " is already downloaded."))
+        } else if (file.exists(lightfile_test) & file.exists(qualityfile_test)){
+          print(paste0("The light file and quality file for ", year, " are already downloaded."))
         }
 
-      } # end test loop
+      } # end sequence loop
 
-    } # end sequence loop
+    } # end corrected_lights if condition
 
   } else if (lightdata_time == "monthly"){
 
@@ -234,15 +295,21 @@ nightlight_download <- function(area_names = "world",
           }
 
           links_current_tile <- links_current[grep(links_current, pattern = tilestump)]
-          links_current_tile <- links_current_tile[grep(links_current_tile, pattern = "vcmcfg")]
 
+          if (corrected_lights == FALSE){
+            links_current_tile <- links_current_tile[grep(links_current_tile, pattern = "vcmcfg")]
+          } else if (corrected_lights == TRUE){
+            links_current_tile <- links_current_tile[grep(links_current_tile, pattern = "vcmslcfg")]
+          }
           lightfile_test <- strsplit(links_current_tile, "/")
           lightfile_test <- lightfile_test[[1]][11]
           lightfile_test <- strsplit(lightfile_test, ".tgz")
           lightfile_test1 <- paste0(light_location, "/", lightfile_test, ".avg_rade9.tif")
           lightfile_test2 <- paste0(light_location, "/", lightfile_test, ".avg_rade9h.tif")
+          qualityfile_test <- paste0(light_location, "/", lightfile_test, ".cf_cvg.tif")
 
-          if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2))){
+          if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2)) |
+             !(file.exists(qualityfile_test))){
             utils::download.file(links_current_tile,
                                  destfile = paste0(light_location, "/", yearmonth, ".tgz"), mode = "wb")
 
@@ -253,11 +320,12 @@ nightlight_download <- function(area_names = "world",
                          exdir = paste0(light_location, "/"))
 
             unlink(paste0(light_location, "/", yearmonth, "_unzipped.tar"), recursive = TRUE)
-          } else if (file.exists(lightfile_test1) | file.exists(lightfile_test2)){
-            print(paste0("Lightfile for tile ", tilenumber, ", ", year, "/", month, " is already downloaded."))
+          } else if ((file.exists(lightfile_test1) | file.exists(lightfile_test2)) & file.exists(qualityfile_test)){
+            print(paste0("The light file and quality file for tile ", tilenumber, ", ", year, "/", month, " are already downloaded."))
           }
 
         } # end tilenumbers loop
+
       } # end sequence loop
 
 
@@ -318,7 +386,7 @@ nightlight_download <- function(area_names = "world",
         ISO3 <- ISO3s[i]
 
         if (is.na(ISO3)){
-          print(paste0("There is no ISO3 countrycode for ", area_name, ", hence download from GADM will not work. Either your shapefile is not a country or, if it is a country, the countryname was not recognized correctly."))
+          print(paste0("There is no iso3c countrycode for ", area_name, ", hence download from GADM will not work. Either your shapefile is not a country or, if it is a country, the countryname was not recognized correctly."))
         }
 
         # check if shapefile is already downloaded
@@ -597,14 +665,6 @@ nightlight_download <- function(area_names = "world",
           if (ymin < 0 & c(xmin > 60 | xmax > 60)){
             tilenumbers <- append(tilenumbers, "6")
           }
-          if (length(tilenumbers) > 1){
-            overlapping_tile <- TRUE
-          } else if (length(tilenumbers == 1)){
-            overlapping_tile <- FALSE
-          }
-        } else if (lightdata_time == "yearly"){
-          tilenumbers <- c("")
-          overlapping_tile <- FALSE
         }
 
 
@@ -657,16 +717,21 @@ nightlight_download <- function(area_names = "world",
             }
 
             links_current <- links_current[grep(links_current, pattern = tilestump)]
-            links_current <- links_current[grep(links_current, pattern = "vcmcfg")]
-
-            # test whether lightfile is already downloaded
+            if (corrected_lights == FALSE){
+              links_current <- links_current[grep(links_current, pattern = "vcmcfg")]
+            } else if (corrected_lights == TRUE){
+              links_current <- links_current[grep(links_current, pattern = "vcmslcfg")]
+            }
+            # test whether light file and/or quality file is already downloaded
             lightfile_test <- strsplit(links_current, "/")
             lightfile_test <- lightfile_test[[1]][11]
             lightfile_test <- strsplit(lightfile_test, ".tgz")
             lightfile_test1 <- paste0(light_location, "/", lightfile_test, ".avg_rade9.tif")
             lightfile_test2 <- paste0(light_location, "/", lightfile_test, ".avg_rade9h.tif")
+            qualityfile_test <- paste0(light_location, "/", lightfile_test, ".cf_cvg.tif")
 
-            if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2))){
+            if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2)) |
+               !(file.exists(qualityfile_test))){
               utils::download.file(links_current,
                                    destfile = paste0(light_location, "/", yearmonth, ".tgz"), mode = "wb")
 
@@ -677,8 +742,8 @@ nightlight_download <- function(area_names = "world",
                            exdir = paste0(light_location, "/"))
 
               unlink(paste0(light_location, "/", yearmonth, "_unzipped.tar"), recursive = TRUE)
-            } else if (file.exists(lightfile_test1) | file.exists(lightfile_test2)){
-              print(paste0("Light file for ", area_name, ", ", year, "/", month, " is already downloaded."))
+            } else if ((file.exists(lightfile_test1) | file.exists(lightfile_test2)) & file.exists(qualityfile_test)){
+              print(paste0("The light file and quality file for tile ", tilenumber, ", ", year, "/", month, " are already downloaded."))
             }
 
           } # end sequence loop

@@ -2,7 +2,7 @@
 \alias{nightlight_calculate}
 \title{nightlight_calculate}
 \description{
-Perform calculations on nightlights of a region in a given time interval (defaults are sum of light values, min, mean and max, plus mean_obs, which indicates the mean number of observations (with respect to pixels) that went into the aggregated image for the time period in a given area). Note about the light files: for the DMSP images, some years have 2 versions available. Generally, if possible, a consistent version for your timespan will be chosen. Otherwise the newest version for each year will be selected. If 2 consistent versions are available for your timespan, the newer one will be selected.}
+Perform calculations on nightlights of a region in a given time interval (defaults are sum of light values, min, mean and max, plus mean_obs, which indicates the mean number of observations (with respect to pixels) that went into the aggregated image for the time period in a given area).}
 \usage{
 nightlight_calculate(
 area_names,
@@ -19,14 +19,15 @@ rawdata = FALSE,
 cut_low = NULL,
 cut_high = NULL,
 cut_quality = 0,
-user_coordinates = NULL)
+user_coordinates = NULL,
+corrected_lights = FALSE)
 }
 \arguments{
 \item{area_names}{May not be empty. String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your shapefile location that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
 
 \item{time}{May not be empty. Vector of strings with the start/end dates in the format "2012-04" (monthly data) or "1992" (yearly data). The monthly data goes from Apr 2012 onwards. The yearly data goes from 1992 to 2013. If only one time period is desired, then simply input one date.}
 
-\item{light_location}{May not be empty. Provide the location of the lightfiles on your drives as a string.}
+\item{light_location}{May not be empty. Provide the location of the lightfiles on your drives as a string. Note about the light files: for the DMSP images, some years have 2 versions available. Generally, if possible, a consistent version for your timespan will be chosen. Otherwise the newest version for each year will be selected. If 2 consistent versions are available for your timespan, the newer one will be selected.}
 
 \item{shapefile_location}{May be empty. Provide the location of the shapefiles on your drive as a string in the case that you want to use shapefiles and not a set of coordinates.}
 
@@ -51,4 +52,6 @@ user_coordinates = NULL)
 \item{cut_quality}{Default is 0. Will set all light values to NA for which the number of observations that went into the calculation of a pixel is smaller than or equal to cut_quality. Hence, with the default value you will have all pixels set to NA for which 0 observations were made but you can set this to a higher number if you want to drop all pixels below a given number of observations.}
 
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
+
+\item{corrected_lights}{Default is FALSE. If set to TRUE, the radiance-calibrated version of the DMSP data or the straylight-corrected version of the VIIRS data will be used. Note that you have to download these versions first, since they are different images from the standard ones.}
 }

@@ -12,7 +12,8 @@ nightlight_calculate <- function(area_names,
                                  cut_low = NULL,
                                  cut_high = NULL,
                                  cut_quality = 0,
-                                 user_coordinates = NULL){
+                                 user_coordinates = NULL,
+                                 corrected_lights = FALSE){
 
   if (is.null(functions_calculate)){
     functions_calculate <- c("sum", "min", "mean", "max")
@@ -107,7 +108,7 @@ nightlight_calculate <- function(area_names,
           stop("Unfortunately, the function does not work with sf.rds shapefiles. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
         }
       } else if (length(grep(help_shapefile, pattern = ".shp")) != 0 |
-          length(grep(help_shapefile, pattern = ".kml")) != 0){
+                 length(grep(help_shapefile, pattern = ".kml")) != 0){
         shapefile <- rgdal::readOGR(shapefile)
       } else if (length(grep(help_shapefile, pattern = ".gpkg")) != 0){
         layers <- rgdal::ogrListLayers(help_shapefile)
@@ -142,7 +143,7 @@ nightlight_calculate <- function(area_names,
     ISO3 <- ISO3s[i]
 
     if (is.na(ISO3)){
-      print(paste0("There is no ISO3 countrycode for ", area_name, ", hence download from GADM will not work. Either your shapefile is not a country or, if it is a country, the countryname was not recognized correctly."))
+      print(paste0("There is no iso3c countrycode for ", area_name, ", hence download from GADM will not work. Either your shapefile is not a country or, if it is a country, the countryname was not recognized correctly."))
     }
 
     # check if shapefile is already downloaded
@@ -421,14 +422,6 @@ nightlight_calculate <- function(area_names,
       if (ymin < 0 & c(xmin > 60 | xmax > 60)){
         tilenumbers <- append(tilenumbers, "6")
       }
-      if (length(tilenumbers) > 1){
-        overlapping_tile <- TRUE
-      } else if (length(tilenumbers == 1)){
-        overlapping_tile <- FALSE
-      }
-    } else if (lightdata_time == "yearly"){
-      tilenumbers <- c("")
-      overlapping_tile <- FALSE
     }
 
 
@@ -471,13 +464,13 @@ nightlight_calculate <- function(area_names,
 
     if (lightdata_time == "monthly"){
       all_aggregated <- data.frame(area_name = "",
-                                   iso3 = "",
+                                   iso3c = "",
                                    area_km2 = 0,
                                    yearmonth = "",
                                    mean_obs = 0)
     } else if (lightdata_time == "yearly"){
       all_aggregated <- data.frame(area_name = "",
-                                   iso3 = "",
+                                   iso3c = "",
                                    area_km2 = 0,
                                    year = 0,
                                    mean_obs = 0)
@@ -518,7 +511,6 @@ nightlight_calculate <- function(area_names,
       # begin sourcefile "get_lightfile"
 
 
-      # build a string out of date and search for lightdata that matches this date
       if (lightdata_time == "monthly"){
 
         year <- as.character(data.table::year(sequence[j]))
@@ -544,59 +536,61 @@ nightlight_calculate <- function(area_names,
         }
         yearmonthspan <- paste0(yearmonth, "01-", yearmonth, numberdays)
 
-      } else if (lightdata_time == "yearly"){
-        year <- sequence[j]
-      }
+        for (t in 1:length(tilenumbers)){
 
-      for (t in 1:length(tilenumbers)){
+          tilenumber <- tilenumbers[t]
+          if (tilenumber == "1"){
+            tilestump <- "75N180W"
+          } else if (tilenumber == "2"){
+            tilestump <- "75N060W"
+          } else if (tilenumber == "3"){
+            tilestump <- "75N060E"
+          } else if (tilenumber == "4"){
+            tilestump <- "00N180W"
+          } else if (tilenumber == "5"){
+            tilestump <- "00N060W"
+          } else if (tilenumber == "6"){
+            tilestump <- "00N060E"
+          }
 
-        tilenumber <- tilenumbers[t]
-
-        if (tilenumber == "1"){
-          tilestump <- "75N180W"
-        } else if (tilenumber == "2"){
-          tilestump <- "75N060W"
-        } else if (tilenumber == "3"){
-          tilestump <- "75N060E"
-        } else if (tilenumber == "4"){
-          tilestump <- "00N180W"
-        } else if (tilenumber == "5"){
-          tilestump <- "00N060W"
-        } else if (tilenumber == "6"){
-          tilestump <- "00N060E"
-        }
-
-        if (lightdata_time == "monthly"){
           list_light <-  list.files(paste0(light_location), pattern = "avg_rade9")
           lightfile <- list_light[grep(".tif", list_light)]
           lightfile <- lightfile[grep(yearmonthspan, lightfile)]
           lightfile <- lightfile[grep(tilestump, lightfile)]
+          if (corrected_lights == FALSE){
+            lightfile <- lightfile[grep("vcmcfg", lightfile)]
+          } else if (corrected_lights == TRUE){
+            lightfile <- lightfile[grep("vcmslcfg", lightfile)]
+          }
           if (length(lightfile) == 1){
             lightfile <- paste0(light_location, "/", lightfile)
             lightfile <- raster::raster(lightfile)
             lightfile <- raster::crop(lightfile, extent)
             if (t == 1){
               lightdata <- lightfile
-            }
-            if (overlapping_tile == TRUE & t > 1){
+            } else if (t > 1){
               lightdata <- raster::merge(lightdata, lightfile)
             }
           } else {
-            stop(paste0("The night light file for ", month, "/", year, " could not be found in your light location."))
+            stop(paste0("The light file for ", month, "/", year, " could not be found in your light location."))
           }
 
           list_quality <- list.files(paste0(light_location), pattern = "cf_cvg")
           qualityfile <- list_quality[grep(".tif", list_quality)]
           qualityfile <- qualityfile[grep(yearmonthspan, qualityfile)]
           qualityfile <- qualityfile[grep(tilestump, qualityfile)]
+          if (corrected_lights == FALSE){
+            qualityfile <- qualityfile[grep("vcmcfg", qualityfile)]
+          } else if (corrected_lights == TRUE){
+            qualityfile <- qualityfile[grep("vcmslcfg", qualityfile)]
+          }
           if (length(qualityfile) == 1){
             qualityfile <- paste0(light_location, "/", qualityfile)
             qualityfile <- raster::raster(qualityfile)
             qualityfile <- raster::crop(qualityfile, extent)
             if (t == 1){
               qualitydata <- qualityfile
-            }
-            if (overlapping_tile == TRUE & t > 1){
+            } else if (t > 1){
               qualitydata <- raster::merge(qualitydata, qualityfile)
             }
             rm(lightfile)
@@ -605,8 +599,14 @@ nightlight_calculate <- function(area_names,
             stop(paste0("The quality file for ", month, "/", year, " could not be found in your light location."))
           }
 
-        } else if (lightdata_time == "yearly"){
+        } # end tilenumbers loop
 
+
+      } else if (lightdata_time == "yearly"){
+
+        year <- sequence[j]
+
+        if (corrected_lights == FALSE){
           # select consistent dmsp version according to the start/ end of the time sequence.
           # otherwise choose the newest dmsp version for each year
           # check if the required files exist
@@ -624,39 +624,49 @@ nightlight_calculate <- function(area_names,
           # if for the selected years there are 2 consistent versions
           if (sequence[1] %in% F10_years & tail(sequence, 1) %in% F10_years){
             dmsp_stump <- "F10"
+            dmsp_consistent <- TRUE
           }
           if (sequence[1] %in% F12_years & tail(sequence, 1) %in% F12_years){
             dmsp_stump <- "F12"
+            dmsp_consistent <- TRUE
           }
           if (sequence[1] %in% F14_years & tail(sequence, 1) %in% F14_years){
             dmsp_stump <- "F14"
+            dmsp_consistent <- TRUE
           }
           if (sequence[1] %in% F15_years & tail(sequence, 1) %in% F15_years){
             dmsp_stump <- "F15"
+            dmsp_consistent <- TRUE
           }
           if (sequence[1] %in% F16_years & tail(sequence, 1) %in% F16_years){
             dmsp_stump <- "F16"
+            dmsp_consistent <- TRUE
           }
           if (sequence[1] %in% F18_years & tail(sequence, 1) %in% F18_years){
             dmsp_stump <- "F18"
+            dmsp_consistent <- TRUE
           }
           if (is.null(dmsp_stump)){
             if (year == "1992" |
                 year == "1993"){
               dmsp_stump <- "F10"
+              dmsp_consistent <- FALSE
             } else if (year == "1994" |
                        year == "1995" |
                        year == "1996"){
               dmsp_stump <- "F12"
+              dmsp_consistent <- FALSE
             } else if (year == "1997" |
                        year == "1998" |
                        year == "1999"){
               dmsp_stump <- "F14"
+              dmsp_consistent <- FALSE
             } else if (year == "2000" |
                        year == "2001" |
                        year == "2002" |
                        year == "2003"){
               dmsp_stump <- "F15"
+              dmsp_consistent <- FALSE
             } else if (year == "2004" |
                        year == "2005" |
                        year == "2006" |
@@ -664,15 +674,15 @@ nightlight_calculate <- function(area_names,
                        year == "2008" |
                        year == "2009"){
               dmsp_stump <- "F16"
+              dmsp_consistent <- FALSE
             } else if (year == "2010" |
                        year == "2011" |
                        year == "2012" |
                        year == "2013"){
               dmsp_stump <- "F18"
+              dmsp_consistent <- FALSE
             }
           }
-
-          print(paste0("The DMSP Version chosen for year ", year, " is ", dmsp_stump, "."))
 
           list_light <- list.files(light_location, pattern = "avg_vis.tif")
           lightdata <- list_light[grep("stable", list_light)]
@@ -683,8 +693,8 @@ nightlight_calculate <- function(area_names,
             lightdata <- raster::raster(lightdata)
             lightdata <- raster::crop(lightdata, extent)
           } else { # if user does not have this version of the light file, search if there is
-                   # another one, only defined by year. since there are max. 2 versions per year,
-                   # this should find the other one if it is there. if not, the error message will occur
+            # another one, only defined by year. since there are max. 2 versions per year,
+            # this should find the other one if it is there. if not, the error message will occur
             lightdata <- list_light[grep("stable", list_light)]
             lightdata <- lightdata[grep(year, lightdata)]
             if (length(lightdata) == 1){
@@ -692,7 +702,7 @@ nightlight_calculate <- function(area_names,
               lightdata <- raster::raster(lightdata)
               lightdata <- raster::crop(lightdata, extent)
             } else {
-              stop(paste0("The night light file for ", year, " could not be found in your light location."))
+              stop(paste0("The light file for ", year, " could not be found in your light location."))
             }
           }
 
@@ -714,8 +724,52 @@ nightlight_calculate <- function(area_names,
             }
           }
 
-        }
-      }
+        } else if (corrected_lights == TRUE){
+
+          if (year == "1996"){
+            dmsp_stump <- "F12_19960316-19970212"
+          } else if (year == "1999"){
+            dmsp_stump <- "F12_19990119-19991211"
+          } else if (year == "2000"){
+            dmsp_stump <- "F12-F15_20000103-20001229"
+          } else if (year == "2003"){
+            dmsp_stump <- "F14-F15_20021230-20031127"
+          } else if (year == "2004"){
+            dmsp_stump <- "F14_20040118-20041216"
+          } else if (year == "2006"){
+            dmsp_stump <- "F16_20051128-20061224"
+          } else if (year == "2010"){
+            dmsp_stump <- "F16_20100111-20101209"
+          } else {
+            next # sequence fills all years, so skip to next year if current one
+            # is not covered by corrected DMSP
+          }
+
+          list_light <- list.files(light_location, pattern = "avg_vis.tif")
+          lightdata <- list_light[grep("rad_v4", list_light)]
+          lightdata <- lightdata[grep(dmsp_stump, lightdata)]
+          if (length(lightdata) == 1){
+            lightdata <- paste0(light_location, "/", lightdata)
+            lightdata <- raster::raster(lightdata)
+            lightdata <- raster::crop(lightdata, extent)
+          } else {
+            stop(paste0("The light file for ", year, " could not be found in your light location."))
+          }
+
+          list_quality <- list.files(light_location, pattern = "cf_cvg.tif")
+          qualitydata <- list_quality[grep("rad_v4", list_quality)]
+          qualitydata <- qualitydata[grep(dmsp_stump, qualitydata)]
+          if (length(qualitydata) == 1){
+            qualitydata <- paste0(light_location, "/", qualitydata)
+            qualitydata <- raster::raster(qualitydata)
+            qualitydata <- raster::crop(qualitydata, extent)
+          } else {
+            stop(paste0("The quality file for ", year, " could not be found in your light location."))
+          }
+
+        } # end corrected_lights if condition
+
+      } # end lightdata_time if condition
 
 
       # end sourcefile "get_lightfile"
@@ -739,12 +793,12 @@ nightlight_calculate <- function(area_names,
 
       if (lightdata_time == "monthly"){
         aggregated <- data.frame(area_name = "",
-                                 iso3 = "",
+                                 iso3c = "",
                                  area_km2 = 0,
                                  yearmonth = "")
       } else if (lightdata_time == "yearly"){
         aggregated <- data.frame(area_name = "",
-                                 iso3 = "",
+                                 iso3c = "",
                                  area_km2 = 0,
                                  year = 0)
       }
@@ -801,7 +855,7 @@ nightlight_calculate <- function(area_names,
       }
 
       aggregated$area_name <- area_name
-      aggregated$iso3 <- ISO3
+      aggregated$iso3c <- ISO3
       aggregated$area_km2 <- area
       if (lightdata_time == "monthly"){
         aggregated$yearmonth <- paste0(year, "-", month)
@@ -860,5 +914,13 @@ nightlight_calculate <- function(area_names,
   } # end area loop
 
   lights <<- lights # load aggregated dataframe with all regions into global environment
+
+  if (lightdata_time == "yearly" & corrected_lights == FALSE){
+    if (dmsp_consistent == FALSE){
+      print(paste0("The consistent DMSP version selected for your timespan is ", dmsp_stump, "."))
+    } else if (dmsp_consistent == TRUE){
+      print("It was not possible to select a consistent DMP version for your timespan. For each year, the newest DMSP version was chosen.")
+    }
+  }
 
 } # end function

@@ -12,7 +12,8 @@ shapefile_location = NULL,
 shapefiles = NULL,
 download_shape = "sp.rds",
 admlevel = 0,
-user_coordinates = NULL)
+user_coordinates = NULL,
+corrected_lights = FALSE)
 }
 \arguments{
 \item{area_names}{Default is "world", in which case data for the whole world will be downloaded (no difference for yearly data because there the whole world is one file; important for monthly data). String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your shapefile location that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
@@ -30,4 +31,6 @@ user_coordinates = NULL)
 \item{admlevel}{Default is 0. Change this when working with different administrative levels.}
 
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
+
+\item{corrected_lights}{Default is FALSE. If set to TRUE, the radiance-calibrated version of the DMSP data or the straylight-corrected version of the VIIRS data will be downloaded.}
 }
