@@ -13,7 +13,8 @@ nightlight_calculate <- function(area_names,
                                  cut_high = NULL,
                                  cut_quality = 0,
                                  user_coordinates = NULL,
-                                 corrected_lights = FALSE){
+                                 corrected_lights = FALSE,
+                                 harmonized_lights = FALSE){
 
   if (is.null(functions_calculate)){
     functions_calculate <- c("sum", "min", "mean", "max")
@@ -466,14 +467,16 @@ nightlight_calculate <- function(area_names,
       all_aggregated <- data.frame(area_name = "",
                                    iso3c = "",
                                    area_km2 = 0,
-                                   yearmonth = "",
-                                   mean_obs = 0)
+                                   yearmonth = "")
     } else if (lightdata_time == "yearly"){
       all_aggregated <- data.frame(area_name = "",
                                    iso3c = "",
                                    area_km2 = 0,
-                                   year = 0,
-                                   mean_obs = 0)
+                                   year = 0)
+    }
+
+    if (harmonized_lights == FALSE){
+      all_aggregated$mean_obs = 0
     }
 
     if (!is.null(shapefile$NAME_1)){
@@ -606,7 +609,7 @@ nightlight_calculate <- function(area_names,
 
         year <- sequence[j]
 
-        if (corrected_lights == FALSE){
+        if (corrected_lights == FALSE & harmonized_lights == FALSE){
           # select consistent dmsp version according to the start/ end of the time sequence.
           # otherwise choose the newest dmsp version for each year
           # check if the required files exist
@@ -724,7 +727,7 @@ nightlight_calculate <- function(area_names,
             }
           }
 
-        } else if (corrected_lights == TRUE){
+        } else if (corrected_lights == TRUE & harmonized_lights == FALSE){
 
           if (year == "1996"){
             dmsp_stump <- "F12_19960316-19970212"
@@ -767,6 +770,27 @@ nightlight_calculate <- function(area_names,
             stop(paste0("The quality file for ", year, " could not be found in your light location."))
           }
 
+        } else if (corrected_lights == TRUE & harmonized_lights == TRUE){
+          stop("Please choose either harmonized, corrected or standard yearly lights.")
+
+        } else if (corrected_lights == FALSE & harmonized_lights == TRUE){
+          qualitydata <- NULL
+          list_light <- list.files(light_location, pattern = "Harmonized_DN_NTL")
+          lightdata <- list_light[grep(year, list_light)]
+          numericyear <- as.numeric(year)
+          if (numericyear >= 1992 & numericyear < 2014){
+            lightdata <- lightdata[grep("calDMSP.tif", lightdata)]
+          } else if (numericyear >= 2014){
+            lightdata <- lightdata[grep("simVIIRS.tif", lightdata)]
+          }
+          if (length(lightdata) == 1){
+            lightdata <- paste0(light_location, "/", lightdata)
+            lightdata <- raster::raster(lightdata)
+            lightdata <- raster::crop(lightdata, extent)
+          } else {
+            stop(paste0("The light file for ", year, " could not be found in your light location."))
+          }
+
         } # end corrected_lights if condition
 
       } # end lightdata_time if condition
@@ -777,18 +801,28 @@ nightlight_calculate <- function(area_names,
 
       if (rawdata == TRUE){
         lightdata_uncut <- lightdata
-        qualitydata_uncut <- qualitydata
+        if (harmonized_lights == FALSE){
+          qualitydata_uncut <- qualitydata
+        }
       }
+
       lightdata[qualitydata <= cut_quality] <- NA
-      qualitydata[qualitydata <= cut_quality] <- NA # also set this to NA so later the mean of observations per pixel is calculated only for pixels above the cut_quality threshold
+      if (harmonized_lights == FALSE){
+        qualitydata[qualitydata <= cut_quality] <- NA # also set this to NA so later the mean of observations per pixel is calculated only for pixels above the cut_quality threshold
+      }
 
       if (!is.null(cut_low)){
         lightdata[lightdata < cut_low] <- NA
-        qualitydata[lightdata < cut_low] <- NA
+        if (harmonized_lights == FALSE){
+          qualitydata[lightdata < cut_low] <- NA
+        }
       }
+
       if (!is.null(cut_high)){
         lightdata[lightdata > cut_high] <- NA
-        qualitydata[lightdata > cut_high] <- NA
+        if (harmonized_lights == FALSE){
+          qualitydata[lightdata > cut_high] <- NA
+        }
       }
 
       if (lightdata_time == "monthly"){
@@ -863,7 +897,9 @@ nightlight_calculate <- function(area_names,
         aggregated$year <- as.numeric(year)
       }
 
-      aggregated$mean_obs <- suppressWarnings(raster::extract(qualitydata, shapefile, fun = mean, na.rm = TRUE))
+      if (harmonized_lights == FALSE){
+        aggregated$mean_obs <- suppressWarnings(raster::extract(qualitydata, shapefile, fun = mean, na.rm = TRUE))
+      }
 
       for (k in 1:length(functions_calculate)){
         current_function_name <- functions_calculate[k]
@@ -877,12 +913,16 @@ nightlight_calculate <- function(area_names,
       if (rawdata == TRUE){
         rawdata_values <- data.frame(suppressWarnings(raster::extract(lightdata_uncut, shapefile, cellnumbers = TRUE)))
         rawdata_values <- cbind(rawdata_values, raster::coordinates(lightdata_uncut)[rawdata_values[,1],])
-        rawdata_quality <- data.frame(suppressWarnings(raster::extract(qualitydata_uncut, shapefile, cellnumbers = TRUE)))
-        rawdata_values <- cbind(rawdata_values, rawdata_quality$value)
-        colnames(rawdata_values)[colnames(rawdata_values) == "rawdata_quality$value"] <- "number_obs"
         colnames(rawdata_values)[colnames(rawdata_values) == "cell"] <- "cellnumber"
         colnames(rawdata_values)[colnames(rawdata_values) == "value"] <- "lightvalue"
-        rawdata_values <- rawdata_values[,c("cellnumber", "lightvalue", "number_obs", "x", "y")]
+        if (harmonized_lights == FALSE){
+          rawdata_quality <- data.frame(suppressWarnings(raster::extract(qualitydata_uncut, shapefile, cellnumbers = TRUE)))
+          rawdata_values <- cbind(rawdata_values, rawdata_quality$value)
+          colnames(rawdata_values)[colnames(rawdata_values) == "rawdata_quality$value"] <- "number_obs"
+          rawdata_values <- rawdata_values[,c("cellnumber", "lightvalue", "number_obs", "x", "y")]
+        } else if (harmonized_lights == TRUE){
+          rawdata_values <- rawdata_values[,c("cellnumber", "lightvalue", "x", "y")]
+        }
         if (lightdata_time == "monthly"){
           rawdata_name <- paste0("rawlights_", area_name, "_", year, "-", month)
         } else if (lightdata_time == "yearly"){
@@ -915,10 +955,10 @@ nightlight_calculate <- function(area_names,
 
   lights <<- lights # load aggregated dataframe with all regions into global environment
 
-  if (lightdata_time == "yearly" & corrected_lights == FALSE){
-    if (dmsp_consistent == FALSE){
+  if (lightdata_time == "yearly" & corrected_lights == FALSE & harmonized_lights == FALSE){
+    if (dmsp_consistent == TRUE | length(sequence) == 1){
       print(paste0("The consistent DMSP version selected for your timespan is ", dmsp_stump, "."))
-    } else if (dmsp_consistent == TRUE){
+    } else if (dmsp_consistent == FALSE & length(sequence) > 1){
       print("It was not possible to select a consistent DMP version for your timespan. For each year, the newest DMSP version was chosen.")
     }
   }

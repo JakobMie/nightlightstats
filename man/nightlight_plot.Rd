@@ -19,7 +19,8 @@ fixed_scale_high = NULL,
 cut_quality = 0,
 user_projection = NULL,
 user_coordinates = NULL,
-corrected_lights = FALSE)
+corrected_lights = FALSE,
+harmonized_lights = FALSE)
 }
 \arguments{
 \item{area_names}{May not be empty. String (vector) with the name(s) of your region(s). If you provide a country name, the country shapefile will be downloaded automatically. Shapefiles in your working directory that have the area_names or (in case they exist) their ISO-3 countrycodes in their filename will be detected automatically. If you provide own shapefiles in the shapefiles argument, put the names in order of the shapefile order. If you only put one name for multiple shapefiles, all shapefiles will be processed with that name.}
@@ -51,4 +52,6 @@ corrected_lights = FALSE)
 \item{user_coordinates}{May be empty. Decimal numbers (longlat). Can be specified if you want to calculate for a region defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
 
 \item{corrected_lights}{Default is FALSE. If set to TRUE, the radiance-calibrated version of the DMSP data or the straylight-corrected version of the VIIRS data will be used. Note that you have to download these versions first, since they are different images from the standard ones.}
+
+\item{harmonized_lights}{Default is FALSE. If set to TRUE, the harmonized DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you have to download these versions first, since they are different images from the standard ones.}
 }

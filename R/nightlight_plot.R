@@ -12,7 +12,8 @@ nightlight_plot <- function(area_names,
                             cut_quality = 0,
                             user_projection = NULL,
                             user_coordinates = NULL,
-                            corrected_lights = FALSE){
+                            corrected_lights = FALSE,
+                            harmonized_lights = FALSE){
 
   group <- lat <- light <- lon <- long <- raster_lights <- NULL # "nulling out" i.e. setting the variables to NULL first and then using them later, only to bind variables so there is no "binding for global variables" problem later
 
@@ -526,7 +527,7 @@ nightlight_plot <- function(area_names,
 
         year <- sequence[j]
 
-        if (corrected_lights == FALSE){
+        if (corrected_lights == FALSE & harmonized_lights == FALSE){
           # select consistent dmsp version according to the start/ end of the time sequence.
           # otherwise choose the newest dmsp version for each year
           # check if the required files exist
@@ -644,7 +645,7 @@ nightlight_plot <- function(area_names,
             }
           }
 
-        } else if (corrected_lights == TRUE){
+        } else if (corrected_lights == TRUE & harmonized_lights == FALSE){
 
           if (year == "1996"){
             dmsp_stump <- "F12_19960316-19970212"
@@ -687,6 +688,27 @@ nightlight_plot <- function(area_names,
             stop(paste0("The quality file for ", year, " could not be found in your light location."))
           }
 
+        } else if (corrected_lights == TRUE & harmonized_lights == TRUE){
+          stop("Please choose either harmonized, corrected or standard yearly lights.")
+
+        } else if (corrected_lights == FALSE & harmonized_lights == TRUE){
+          qualitydata <- NULL
+          list_light <- list.files(light_location, pattern = "Harmonized_DN_NTL")
+          lightdata <- list_light[grep(year, list_light)]
+          numericyear <- as.numeric(year)
+          if (numericyear >= 1992 & numericyear < 2014){
+            lightdata <- lightdata[grep("calDMSP.tif", lightdata)]
+          } else if (numericyear >= 2014){
+            lightdata <- lightdata[grep("simVIIRS.tif", lightdata)]
+          }
+          if (length(lightdata) == 1){
+            lightdata <- paste0(light_location, "/", lightdata)
+            lightdata <- raster::raster(lightdata)
+            lightdata <- raster::crop(lightdata, extent)
+          } else {
+            stop(paste0("The light file for ", year, " could not be found in your light location."))
+          }
+
         } # end corrected_lights if condition
 
       } # end lightdata_time if condition
@@ -708,11 +730,12 @@ nightlight_plot <- function(area_names,
       df_light <- data.frame(lightdata)
       colnames(df_light) <- c("lon", "lat", "light")
 
-      qualitydata <- raster::rasterToPoints(qualitydata)
-      df_quality <- data.frame(qualitydata)
-      colnames(df_quality) <- c("lon", "lat", "obs")
-
-      df_light$light[df_quality$obs <= cut_quality] <- NA
+      if (harmonized_lights == FALSE){
+        qualitydata <- raster::rasterToPoints(qualitydata)
+        df_quality <- data.frame(qualitydata)
+        colnames(df_quality) <- c("lon", "lat", "obs")
+        df_light$light[df_quality$obs <= cut_quality] <- NA
+      }
 
       if (is.null(fixed_scale_low)){
         fixed_scale_low_plot <- suppressWarnings(min(df_light$light, na.rm = TRUE))
@@ -790,10 +813,10 @@ nightlight_plot <- function(area_names,
 
   } # end area loop
 
-  if (lightdata_time == "yearly" & corrected_lights == FALSE){
-    if (dmsp_consistent == FALSE){
+  if (lightdata_time == "yearly" & corrected_lights == FALSE & harmonized_lights == FALSE){
+    if (dmsp_consistent == TRUE | length(sequence) == 1){
       print(paste0("The consistent DMSP version selected for your timespan is ", dmsp_stump, "."))
-    } else if (dmsp_consistent == TRUE){
+    } else if (dmsp_consistent == FALSE & length(sequence) > 1){
       print("It was not possible to select a consistent DMP version for your timespan. For each year, the newest DMSP version was chosen.")
     }
   }

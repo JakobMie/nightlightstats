@@ -95,7 +95,7 @@ In case you want to plot a region that is not availale on GADM (i.e. a region th
 
 In case you input a set of coordinates, you will get an image with a rectangular shapefile constructed from your coordinates.
 
-## Caveats and limitations of the package and the data
+## Limitations and alternative data sources
 
 - The code is not explicitly written for fast performance.
 
@@ -103,18 +103,21 @@ In case you input a set of coordinates, you will get an image with a rectangular
 
 - There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (see Abrahams et al., 2018).
 
-- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018). There is a version of the DMSP data that has no top-coding, however, only for the years 1996, 1999, 2000, 2003, 2004, 2006 and 2010 (accessible [here](https://eogdata.mines.edu/dmsp/download_radcal.html). You can use them by setting `corrected_lights` to TRUE. These are different images, so you have to download them first and set this argument to TRUE in every function from the beginning (unzipping these files takes quite long and they are larger than the normal DMSP files, about 6GB per yearly file incl. quality file). Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2018).
+- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018). There is a version of the DMSP data that has no top-coding, however, only for the years 1996, 1999, 2000, 2003, 2004, 2006 and 2010 (available at https://eogdata.mines.edu/dmsp/download_radcal.html). You can use them by setting `corrected_lights` to TRUE. These are different images, so you have to download them first and set this argument to TRUE in every function from the beginning (unzipping these files takes quite long and they are larger than the normal DMSP files, about 6GB per yearly file incl. quality file). Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2018).
 
 - Temporal consistency is not an issue for VIIRS data, since the light values are consistently calibrated. The DMSP data, on the other hand, are not calibrated and hence might not be perfectly comparable across satellite versions or even across years within a satellite version. The package tries to mitigate this issue by using consistent satellite versions where possible. In an econometric analysis, satellite version fixed effects and year fixed effects are advisable (see e.g. Gibson et al., 2020).
 
 - Seasonal fluctuations influence data quality. The data often lack values for summer months due to stray light during summer nights for regions close to the Poles. Snowfall in winter influences light reflection and increases brightness depending on the amount of snowfall. These points can nicely be illustrated by looking at the mean of light values in Moscow, a bright city with a lot of snow in winter and a rather short distance to the North Pole. You can see that values for the summer months are not available and that values in the winter months fluctuate strongly, likely due to variation in snowfall. 
 
-- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version by setting `corrected_lights` to TRUE. These are different images, so you have to download them first and set this argument to TRUE in every function from the beginning. The trade-off is that these data are of reduced quality (see Mills et al., 2013).
-
 <figure>
   <img src="moscow.png" width="570">
   <figcaption>Monthly light means for Moscow, non straylight-corrected version.</figcaption>
 </figure>
+
+- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version by setting `corrected_lights` to TRUE. These are different images, so you have to download them first and set this argument to TRUE in every function from the beginning. The trade-off is that these data are of reduced quality (see Mills et al., 2013).
+
+- You can also work with a harmonized DMSP-VIIRS dataset spanning from 1992 to 2018 (see Li et al., 2020, available at https://figshare.com/articles/Harmonization_of_DMSP_and_VIIRS_nighttime_light_data_from_1992-2018_at_the_global_scale/9828827/2). For this, you have to set `harmonized_lights` to TRUE in all functions. This harmonized dataset is built with the non straylight-corrected VIIRS data. The VIIRS data are transformed to match the resolution and top-coding of the DMSP data. The DMSP are temporally calibrated to ensure temporal consistency. The data are already produced with quality weights, separate quality files are not included in this dataset.
+
 
 ## References
 
@@ -127,5 +130,7 @@ In case you input a set of coordinates, you will get an image with a rectangular
 - Gibson, J., Olivia, S. Boe-Gibson, G. (2020). Night lights in economics: Sources and uses. CSAE Working Paper Series 2020-01, Centre for the Study of African Economies, University of Oxford.
 
 - Henderson, J. V., Storeygard, A., & Weil, D. N. (2012). Measuring economic growth from outer space. American Economic Review, 102(2), 994–1028.
+
+- Li, X., Zhou, Y., Zhao, M., & Zhao, X. (2020). A harmonized global nighttime light dataset 1992–2018. Scientific Data, 7(1).
 
 - Mills, S., Weiss, S., & Liang, C. (2013). VIIRS day/night band (DNB) stray light characterization and correction. Earth Observing Systems XVIII.

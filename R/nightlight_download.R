@@ -6,7 +6,8 @@ nightlight_download <- function(area_names = "world",
                                 download_shape = "sp.rds",
                                 admlevel = 0,
                                 user_coordinates = NULL,
-                                corrected_lights = FALSE){
+                                corrected_lights = FALSE,
+                                harmonized_lights = FALSE){
 
 
   # begin sourcefile "setup"
@@ -75,7 +76,7 @@ nightlight_download <- function(area_names = "world",
 
   if (lightdata_time == "yearly"){
 
-    if (corrected_lights == FALSE){
+    if (corrected_lights == FALSE & harmonized_lights == FALSE){
       stump1 <- "https://www.ngdc.noaa.gov/eog/data/web_data/v4composites/"
       stump3 <- ".v4.tar"
 
@@ -176,7 +177,7 @@ nightlight_download <- function(area_names = "world",
 
       } # end sequence loop
 
-    } else if (corrected_lights == TRUE){
+    } else if (corrected_lights == TRUE & harmonized_lights == FALSE){
 
       stump1 <- "https://eogdata.mines.edu/wwwdata/dmsp/rad_cal/"
       stump3 <- "_rad_v4"
@@ -223,6 +224,89 @@ nightlight_download <- function(area_names = "world",
 
         } else if (file.exists(lightfile_test) & file.exists(qualityfile_test)){
           print(paste0("The light file and quality file for ", year, " are already downloaded."))
+        }
+
+      } # end sequence loop
+
+    } else if (corrected_lights == TRUE & harmonized_lights == TRUE){
+      stop("Please choose either harmonized, corrected or standard yearly lights.")
+
+    } else if (corrected_lights == FALSE & harmonized_lights == TRUE){
+
+      for (j in 1:length(sequence)){
+        year <- sequence[j]
+
+        stump1 <- "https://ndownloader.figshare.com/files/17626"
+        stump3 <- "Harmonized_DN_NTL_"
+        stump_dmsp <- "_calDMSP.tif"
+        stump_viirs <- "_simVIIRS.tif"
+
+        if (year == "1992"){
+          stump2 <- "052"
+        } else if (year == "1993"){
+          stump2 <- "055"
+        } else if (year == "1994"){
+          stump2 <- "061"
+        } else if (year == "1995"){
+          stump2 <- "067"
+        } else if (year == "1996"){
+          stump2 <- "070"
+        } else if (year == "1997"){
+          stump2 <- "073"
+        } else if (year == "1998"){
+          stump2 <- "079"
+        } else if (year == "1999"){
+          stump2 <- "082"
+        } else if (year == "2000"){
+          stump2 <- "085"
+        } else if (year == "2001"){
+          stump2 <- "088"
+        } else if (year == "2002"){
+          stump2 <- "091"
+        } else if (year == "2003"){
+          stump2 <- "094"
+        } else if (year == "2004"){
+          stump2 <- "097"
+        } else if (year == "2005"){
+          stump2 <- "100"
+        } else if (year == "2006"){
+          stump2 <- "103"
+        } else if (year == "2007"){
+          stump2 <- "109"
+        } else if (year == "2008"){
+          stump2 <- "016"
+        } else if (year == "2009"){
+          stump2 <- "019"
+        } else if (year == "2010"){
+          stump2 <- "022"
+        } else if (year == "2011"){
+          stump2 <- "025"
+        } else if (year == "2012"){
+          stump2 <- "031"
+        } else if (year == "2013"){
+          stump2 <- "034"
+        } else if (year == "2014"){
+          stump2 <- "037"
+        } else if (year == "2015"){
+          stump2 <- "040"
+        } else if (year == "2016"){
+          stump2 <- "043"
+        } else if (year == "2017"){
+          stump2 <- "046"
+        } else if (year == "2018"){
+          stump2 <- "049"
+        }
+
+        numericyear <- as.numeric(year)
+
+        if (numericyear >= 1992 & numericyear < 2014){
+          utils::download.file(url = paste0(stump1, stump2),
+                               destfile = paste0(light_location, "/", stump3, year, stump_dmsp),
+                               mode = "wb")
+        } else if (numericyear >= 2014){
+          utils::download.file(url = paste0(stump1, stump2),
+                               destfile = paste0(light_location, "/", stump3, year, stump_viirs),
+                               mode = "wb")
         }
 
       } # end sequence loop
