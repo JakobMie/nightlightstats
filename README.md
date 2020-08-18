@@ -22,7 +22,7 @@ For the yearly data, you can just use the `time` argument. The DMSP data are ava
 
     nightlight_download(
     time = c("1992", "2013"),
-    light_location = "D:"/nightlights)
+    light_location = "D:/nightlights")
 
 Monthly VIIRS images divide the whole world into 6 geographic tiles. You have the option of either downloading only the tile you need (by inputting geographic information, either through coordinates or using a shapefile) or by downloading all 6 tiles (by providing no geographic information). Note: it may happen that the region you want to analyze is overlapping on two or more of these tiles. In that case, all of them will be downloaded.
 
@@ -32,13 +32,13 @@ For example, if you only want to analyze the night lights of Germany in the year
     area_names = "Germany",
     time = c("2013-01", "2013-12"),
     shapefile_location = "D:/shapefiles",
-    light_location = "D:"/nightlights)
+    light_location = "D:/nightlights")
     
 or
 
     nightlight_download(
     time = c("2013-01", "2013-12"),
-    light_location = "D:"/nightlights)
+    light_location = "D:/nightlights")
     user_coordinates = c(5.866, 15.042, 47.270, 55.057)
 
 In the first example, the shapefile of Germany will automatically be downloaded from the GADM database (only possible for countries), or, if there is already a shapefile for Germany present in your `shapefile_location`, it will automatically be detected. In the second example, you simply provide the minimum and maximum coordinates of Germany (the order is xmin, xmax, ymin, ymax). The downloaded tile (in this case just one) will be the same, but no shapefile will be downloaded from GADM if you input the set of coordinates.
@@ -91,7 +91,7 @@ You get the following image, either by already having the shapefile for Germany 
 
 <img src="germany_adm1.png" width="270">
 
-In case you want to plot a region that is not availale on GADM (i.e. a region that is not a country), you must have the downloaded shapefile in your `shapefile_location`, so the function can detect it according to the name you give in `area_names`. If this fails, there is always the option to use the `shapefiles` argument and just give the filenames of the shapefiles instead (you still have to set the `area_names` for the naming of the output). This applies to `nightlight_calculate` as well.
+In case you want to plot a region that is not available on GADM (i.e. a region that is not a country), you must have the downloaded shapefile in your `shapefile_location`, so the function can detect it according to the name you give in `area_names`. If this fails, there is always the option to use the `shapefiles` argument and just give the filenames of the shapefiles instead (you still have to set the `area_names` for the naming of the output). This applies to `nightlight_calculate` as well.
 
 In case you input a set of coordinates, you will get an image with a rectangular shapefile constructed from your coordinates.
 
@@ -103,11 +103,11 @@ In case you input a set of coordinates, you will get an image with a rectangular
 
 - There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (see Abrahams et al., 2018).
 
-- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018). There is a version of the DMSP data that has no top-coding, although only for the years 1996, 1999, 2000, 2003, 2004, 2006 and 2010 (available at https://eogdata.mines.edu/dmsp/download_radcal.html). You can use them by setting `corrected_lights` to TRUE. These are different images, so you have to download them first by setting this argument to TRUE in `nightlight_download` as well (unzipping these files takes quite long and they are larger than the normal DMSP files, about 6GB per yearly file incl. quality file). Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2018).
+- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018). There is a version of the DMSP data that has no top-coding, although only for the years 1996, 1999, 2000, 2003, 2004, 2006 and 2010 (available at https://eogdata.mines.edu/dmsp/download_radcal.html). You can use these images by setting `corrected_lights` to TRUE. These are different data, so you have to download them first by setting this argument to TRUE in `nightlight_download` as well (unzipping these files takes quite long and they are larger than the normal DMSP files, about 6GB per yearly file incl. quality file). Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2018).
 
 - Temporal consistency is not an issue for VIIRS data, since the light values are consistently calibrated. The DMSP data, on the other hand, are not consistently calibrated and hence might not be perfectly comparable across satellite versions or even across years within a satellite version. The package tries to mitigate this issue by using consistent satellite versions where possible. In an econometric analysis, satellite version fixed effects and year fixed effects are advisable (see e.g. Gibson et al., 2020).
 
-- Natural factors influence data quality. Cloud coverage influences the number of observed nights that go into an aggregated image and can be especially strong in tropical regions. The data often lack values for summer months for regions close to the Poles due to stray light during summer nights. Aurora light and snowfall could influence observed lights for regions close to the Poles. These points can nicely be illustrated by looking at the mean of light values in Moscow, a bright city with a rather short distance to the North Pole. You can see that values for the summer months are not available and that values in the winter months fluctuate strongly, possibly due to disturbances caused by aurora light or varying reflection intensity of human-produced light due to variation in snowfall.
+- Natural factors influence data quality. Cloud coverage affects the number of observed nights that go into an aggregated image and can be especially strong in tropical regions. The data often lack values for summer months for regions close to the Poles due to stray light during summer nights. Aurora light and snowfall could influence observed lights for regions close to the Poles. These points can nicely be illustrated by looking at the mean of light values in Moscow, a bright city with a rather short distance to the North Pole. You can see that values for the summer months are not available and that values in the winter months fluctuate strongly, possibly due to disturbances caused by aurora light or varying reflection intensity of human-produced light due to variation in snowfall.
 
 <figure>
   <img src="moscow.png" width="570">
