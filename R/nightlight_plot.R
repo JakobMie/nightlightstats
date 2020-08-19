@@ -817,7 +817,7 @@ nightlight_plot <- function(area_names,
     if (dmsp_consistent == TRUE | length(sequence) == 1){
       print(paste0("The consistent DMSP version selected for your timespan is ", dmsp_stump, "."))
     } else if (dmsp_consistent == FALSE & length(sequence) > 1){
-      print("It was not possible to select a consistent DMP version for your timespan. For each year, the newest DMSP version was chosen.")
+      print("It was not possible to select a consistent DMSP version for your timespan. For each year, the newest DMSP version was chosen.")
     }
   }
 
