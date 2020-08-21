@@ -38,7 +38,7 @@ slice_shapefile <- function(shapefile,
                                     start = nchar(shapefile) - 4,
                                     stop = (nchar(shapefile)))
     shapefile <- suppressWarnings(rgdal::readOGR(paste0(shapefile_location, "/", shapefile)))
-    # suppress warnings because gpkg has multiple adm layers. for split, just read the first one = adm0
+    # suppress warnings because gpkg has multiple adm layers. for split, just read the first one
   } else {
     stop("Unfortunately, the function does not work the format of your shapefile.")
   }

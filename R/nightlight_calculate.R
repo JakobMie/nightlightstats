@@ -112,8 +112,19 @@ nightlight_calculate <- function(area_names,
                  length(grep(help_shapefile, pattern = ".kml")) != 0){
         shapefile <- rgdal::readOGR(shapefile)
       } else if (length(grep(help_shapefile, pattern = ".gpkg")) != 0){
-        layers <- rgdal::ogrListLayers(help_shapefile)
-        shapefile <- rgdal::readOGR(help_shapefile, layers[admlevel + 1])
+        layers_all <- rgdal::ogrListLayers(help_shapefile)
+        layer <- layers_all[grep(as.character(admlevel), layers_all)]
+        if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+          adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+          layer_index <- match(max(adm_matches), adm_matches)
+          layer <- layer[layer_index]
+        } # this will find the layer in which the admlevel number most often appears.
+        # the reason to do it this way is because (even within GADM), layers are
+        # sometimes in ascending, sometimes in descending order. so a general approach
+        # e.g. for ascending order "admlevel + 1" or descending order
+        # "length(layers) - admlevel" does not work. plus, this is more robust to other
+        # types of shapefiles than GADM as well.
+        shapefile <- rgdal::readOGR(help_shapefile, layer)
       } else {
         stop("Unfortunately, the function does not work the format of your shapefile. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
       }
@@ -224,8 +235,19 @@ nightlight_calculate <- function(area_names,
         help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
         help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
         if (length(help_shapefile) == 1){
-          layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
-          shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[admlevel + 1])
+          layers_all <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
+          layer <- layers_all[grep(as.character(admlevel), layers_all)]
+          if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+            adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+            layer_index <- match(max(adm_matches), adm_matches)
+            layer <- layer[layer_index]
+          } # this will find the layer in which the admlevel number most often appears.
+          # the reason to do it this way is because (even within GADM), layers are
+          # sometimes in ascending, sometimes in descending order. so a general approach
+          # e.g. for ascending order "admlevel + 1" or descending order
+          # "length(layers) - admlevel" does not work. plus, this is more robust to other
+          # types of shapefiles than GADM.
+          shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layer)
         } else if (length(help_shapefile) > 1){
           stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
         }
@@ -237,8 +259,19 @@ nightlight_calculate <- function(area_names,
         if (length(help_shapefile) == 1){
           help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
           help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-          layers <- rgdal::ogrListLayers(help_shapefile)
-          shapefile <- rgdal::readOGR(help_shapefile, layers[admlevel + 1])
+          layers_all <- rgdal::ogrListLayers(help_shapefile)
+          layer <- layers_all[grep(as.character(admlevel), layers_all)]
+          if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+            adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+            layer_index <- match(max(adm_matches), adm_matches)
+            layer <- layer[layer_index]
+          } # this will find the layer in which the admlevel number most often appears.
+          # the reason to do it this way is because (even within GADM), layers are
+          # sometimes in ascending, sometimes in descending order. so a general approach
+          # e.g. for ascending order "admlevel + 1" or descending order
+          # "length(layers) - admlevel" does not work. plus, this is more robust to other
+          # types of shapefiles than GADM.
+          shapefile <- rgdal::readOGR(help_shapefile, layer)
           zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
           zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
           unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
@@ -320,8 +353,19 @@ nightlight_calculate <- function(area_names,
       help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
       if (length(help_shapefile) == 1){
-        layers <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layers[admlevel + 1])
+        layers_all <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
+        layer <- layers_all[grep(as.character(admlevel), layers_all)]
+        if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+          adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+          layer_index <- match(max(adm_matches), adm_matches)
+          layer <- layer[layer_index]
+        } # this will find the layer in which the admlevel number most often appears.
+        # the reason to do it this way is because (even within GADM), layers are
+        # sometimes in ascending, sometimes in descending order. so a general approach
+        # e.g. for ascending order "admlevel + 1" or descending order
+        # "length(layers) - admlevel" does not work. plus, this is more robust to other
+        # types of shapefiles than GADM.
+        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layer)
       } else if (length(help_shapefile) > 1){
         stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
       }
@@ -333,8 +377,19 @@ nightlight_calculate <- function(area_names,
       if (length(help_shapefile) == 1){
         help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
         help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-        layers <- rgdal::ogrListLayers(help_shapefile)
-        shapefile <- rgdal::readOGR(help_shapefile, layers[admlevel + 1])
+        layers_all <- rgdal::ogrListLayers(help_shapefile)
+        layer <- layers_all[grep(as.character(admlevel), layers_all)]
+        if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+          adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+          layer_index <- match(max(adm_matches), adm_matches)
+          layer <- layer[layer_index]
+        } # this will find the layer in which the admlevel number most often appears.
+        # the reason to do it this way is because (even within GADM), layers are
+        # sometimes in ascending, sometimes in descending order. so a general approach
+        # e.g. for ascending order "admlevel + 1" or descending order
+        # "length(layers) - admlevel" does not work. plus, this is more robust to other
+        # types of shapefiles than GADM.
+        shapefile <- rgdal::readOGR(help_shapefile, layer)
         zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
         zipfile <- zipfile[grep(zipfile, pattern = area_name)]
         unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
@@ -380,8 +435,19 @@ nightlight_calculate <- function(area_names,
       help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip")
       help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-      layers <- rgdal::ogrListLayers(help_shapefile)
-      shapefile <- rgdal::readOGR(help_shapefile, layers[admlevel + 1])
+      layers_all <- rgdal::ogrListLayers(help_shapefile)
+      layer <- layers_all[grep(as.character(admlevel), layers_all)]
+      if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
+        adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
+        layer_index <- match(max(adm_matches), adm_matches)
+        layer <- layer[layer_index]
+      } # this will find the layer in which the admlevel number most often appears.
+      # the reason to do it this way is because (even within GADM), layers are
+      # sometimes in ascending, sometimes in descending order. so a general approach
+      # e.g. for ascending order "admlevel + 1" or descending order
+      # "length(layers) - admlevel" does not work. plus, this is more robust to other
+      # types of shapefiles than GADM.
+      shapefile <- rgdal::readOGR(help_shapefile, layer)
       unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip"), recursive = TRUE)
     }
 
