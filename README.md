@@ -10,6 +10,8 @@ You can either work with yearly DMSP data ranging from 1992 to 2013 (https://www
  
 At the time of writing, the yearly VIIRS data are not uploaded so the package does not process these data. Please contact the authors if you notice that this has changed. 
 
+If at any point you experience trouble with the calculation capacities of your computer because the region you want to investigate is too large, you can take a look at the auxiliary function `slice_shapefile` which conveniently cuts a region into smaller pieces.
+
 ## nightlight_download
 
 You will want to use this function first if you want to start working with night light satellite data. The function is simply a tool that facilitates downloading the data, so you do not have to do that by hand.

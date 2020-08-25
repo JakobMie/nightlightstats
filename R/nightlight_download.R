@@ -1,78 +1,84 @@
+#' nightlight_download
+#'
+#' Download nightlight data, either for the whole world or for a given region.
+#' Note: the yearly data is of lower resolution than the monthly data and takes
+#' up less space (1 year image for the whole world = 1/16 space of a monthly
+#' image for the whole world). Hence, yearly data will be fine on your normal
+#' drive (all years together ca. 45 GB incl. quality indicator files), but
+#' working with monthly data likely requires an external drive (about 1.5+
+#' TB for all files incl. quality indicator files). For some years,
+#' there are 2 DMSP versions available. The code downloads both. There are
+#' alternative data sources available, see the corrected_lights and
+#' harmonized_lights arguments for these.
+#'
+#' @param area_names Default is "world", in which case data for the whole world
+#' will be downloaded (no difference for yearly data because there the whole
+#' world is one file; important for monthly data). String (vector) with the
+#' name(s) of your region(s). If you provide a country name, the country
+#' shapefile will be downloaded automatically. Shapefiles in your shapefile
+#' location that have the area_names or (in case they exist) their iso3c
+#' countrycodes in their filename will be detected automatically. If you provide
+#' own shapefiles in the shapefiles argument, put the names in order of the
+#' shapefile order. If you only put one name for multiple shapefiles, all
+#' shapefiles will be processed with that name.
+#' @param time May not be empty. Vector of strings with the start/end dates in
+#' the format "2012-04" (monthly data) or "1992" (yearly data). If only one
+#' time period is desired, then simply input one date.
+#' @param light_location May not be empty. Provide the location where you store
+#' your light files on your drive as a string.
+#' @param shapefile_location May be empty. Provide the location of the
+#' shapefiles on your drive as a string in the case that you want to use
+#' shapefiles and not a set of coordinates.
+#' @param shapefiles May be empty. You can provide own shapefiles here (input
+#' are the filenames) if no automatic download is desired. If there is a
+#' shapefile in your shapfile location that has either the name of the region
+#' which you enter in area_names or the iso3c countrycode (if it is a
+#' country) in its filename, it will be detected automatically and you do not
+#' have to use this argument.
+#' @param download_shape Default is ".gpkg". Change to ".rds", ".shp" or
+#' ".kml" if you want to download a different shapefile format from GADM. Will
+#' only download if no own shapefiles are provided in the shapefiles argument
+#' or automatically detected in the shapefile location.
+#' @param gpkg_layer May be empty. You might need this argument if the code
+#' does not detect the correct layer of a .gpkg file automatically. This can
+#' happen if the layers of your .gpkg shapefile do not include an admlevel in
+#' their names. In that case, enter the layer here as a string. Note that this
+#' only works for one area at a time. To find out which layers are included
+#' in your .gpkg shapefile, you can use rgdal::ogrListLayers().
+#' @param admlevel Default is 0. Change this when working with different
+#' administrative levels.
+#' @param user_coordinates May be empty. Inputs are decimal numbers (longlat).
+#' Can be specified if you want to download night lights for a region
+#' defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.
+#' @param corrected_lights Default is FALSE. If set to TRUE, the
+#' radiance-calibrated version of the DMSP data or the straylight-corrected
+#' version of the VIIRS data will be downloaded.
+#' @param harmonized_lights Default is FALSE. If set to TRUE, the harmonized
+#' DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you
+#' have to download these versions first, since they are different images from
+#' the standard ones.
+#' @export
+
 nightlight_download <- function(area_names = "world",
                                 time,
                                 light_location,
                                 shapefile_location = NULL,
                                 shapefiles = NULL,
-                                download_shape = "sp.rds",
+                                download_shape = ".gpkg",
+                                gpkg_layer = NULL,
                                 admlevel = 0,
                                 user_coordinates = NULL,
                                 corrected_lights = FALSE,
                                 harmonized_lights = FALSE){
 
+  lightdata_time <- help_shapefiles <- ISO3s <- NULL # set the variables to
+  # NULL first to bind variables so there is no "binding for global variables"
+  # problem later
 
-  # begin sourcefile "setup"
-
-
-  # need the locations without "/" at the end. in case user types this with "/", remove that
-  if (substr(light_location,
-             start = nchar(light_location),
-             stop = nchar(light_location)) == "/"){
-    light_location <- substr(light_location, 1, nchar(light_location) - 1)
-  }
-
-  if(!is.null(shapefile_location)){
-    if (substr(shapefile_location,
-               start = nchar(shapefile_location),
-               stop = nchar(shapefile_location)) == "/"){
-      shapefile_location <- substr(shapefile_location, 1, nchar(shapefile_location) - 1)
-    }
-  }
-
-  time <- as.character(time) # need this as character to build strings later
-  if (length(time) == 1){
-    time_from <- time
-    time_to <- time
-  } else if (length(time) == 2){
-    time_from <- time[1]
-    time_to <- time[2]
-  }
-
-  lightdata_time <- "monthly" # set default to monthly
-
-  if (nchar(time_from) == 4 & nchar(time_to) == 4){
-    lightdata_time <- "yearly"
-  } # change to yearly if year is given (only possibility for 4 characters)
-
-  if (length(area_names) == 1 & length(shapefiles) > 1){
-    area_names <- rep(area_names, length = length(shapefiles))
-    for (l in 1:length(shapefiles)){
-      area_names[l] <- paste0(area_names[l], "_", l)
-    }
-  } # if multiple shapefiles but only one area name provided: give that name to all shapefiles
-
-  if (!is.null(shapefiles)){
-    shapefiles <- paste0(shapefile_location, "/", shapefiles)
-    help_shapefiles <- shapefiles
-  } else if (is.null(shapefiles)){
-    help_shapefiles <- NA
-  } # help_shapefiles is a duplicate of shapefiles for later if provided by the user, otherwise NA
-
-  # create the time sequence to perform the loop for each period between "from" and "to"
-  # + keep monthly data standardized in yearmonth format
-  if (lightdata_time == "monthly"){
-    time_from <- zoo::as.yearmon(time_from)
-    time_to <- zoo::as.yearmon(time_to)
-    time_from <- zoo::as.Date.yearmon(time_from)
-    time_to <- zoo::as.Date.yearmon(time_to)
-    sequence <- seq(time_from, time_to, by = "mon")
-    sequence <- zoo::as.yearmon(sequence)
-  } else if (lightdata_time == "yearly"){
-    sequence <- as.character(seq(time_from, time_to, by = 1))
-  }
-
-
-  # end sourcefile "setup"
-
+  source_setup(light_location = light_location,
+        shapefile_location = shapefile_location,
+        time = time, area_names = area_names,
+        shapefiles = shapefiles)
 
   if (lightdata_time == "yearly"){
 
@@ -130,8 +136,11 @@ nightlight_download <- function(area_names = "world",
 
         # test whether lightfile is already downloaded
         # for years with multiple versions, do this for all versions
-        lightfile_test_all <- paste0(light_location, "/", stump2_all, stump4, "_web.stable_lights.avg_vis.tif")
-        qualityfile_test_all <- paste0(light_location, "/", stump2_all, stump4, "_web.cf_cvg.tif")
+        lightfile_test_all <- paste0(light_location, "/",
+                                     stump2_all, stump4,
+                                     "_web.stable_lights.avg_vis.tif")
+        qualityfile_test_all <- paste0(light_location, "/",
+                                       stump2_all, stump4, "_web.cf_cvg.tif")
 
         for (g in 1:length(lightfile_test_all)){
 
@@ -141,7 +150,12 @@ nightlight_download <- function(area_names = "world",
 
           if(!file.exists(lightfile_test) | !file.exists(qualityfile_test)){
 
-            utils::download.file(url = paste0(stump1, stump2, stump3), destfile = paste0(light_location, "/", stump2, ".v4.tar"), mode = "wb")
+            utils::download.file(url = paste0(stump1,
+                                              stump2,
+                                              stump3),
+                                 destfile = paste0(light_location, "/",
+                                                   stump2, ".v4.tar"),
+                                 mode = "wb")
             utils::untar(paste0(light_location, "/", stump2, ".v4.tar"),
                          exdir = paste0(light_location, "/"))
 
@@ -150,8 +164,12 @@ nightlight_download <- function(area_names = "world",
               lightfile <- lightfile[grep(lightfile, pattern = "stable")]
               lightfile <- lightfile[grep(lightfile, pattern = ".gz")]
               lightfile <- lightfile[grep(lightfile, pattern = year)]
-              R.utils::gunzip(filename = paste0(light_location, "/", lightfile),
-                              destname = paste0(light_location, "/", stump2, stump4, "_web.stable_lights.avg_vis.tif"))
+              R.utils::gunzip(filename = paste0(light_location, "/",
+                                                lightfile),
+                              destname = paste0(
+                                light_location, "/",
+                                stump2, stump4,
+                                "_web.stable_lights.avg_vis.tif"))
             }
 
             if (!file.exists(qualityfile_test)){
@@ -159,18 +177,27 @@ nightlight_download <- function(area_names = "world",
               qualityfile <- qualityfile[grep(qualityfile, pattern = "cf_cvg")]
               qualityfile <- qualityfile[grep(qualityfile, pattern = ".gz")]
               qualityfile <- qualityfile[grep(qualityfile, pattern = year)]
-              R.utils::gunzip(filename = paste0(light_location, "/", qualityfile),
-                              destname = paste0(light_location, "/", stump2, stump4, "_web.cf_cvg.tif"))
+              R.utils::gunzip(filename = paste0(light_location, "/",
+                                                qualityfile),
+                              destname = paste0(light_location, "/",
+                                                stump2, stump4,
+                                                "_web.cf_cvg.tif"))
             }
 
             remove_files <- list.files(light_location)
-            remove_files <- remove_files[grep(remove_files, pattern = stump2)]
-            remove_files <- remove_files[-grep(remove_files, pattern = "_web.stable_lights.avg_vis.tif")]
-            remove_files <- remove_files[-grep(remove_files, pattern = "_web.cf_cvg.tif")]
-            unlink(paste0(light_location, "/", remove_files), recursive = TRUE)
+            remove_files <- remove_files[grep(remove_files,
+                                              pattern = stump2)]
+            remove_files <- remove_files[-grep(
+              remove_files, pattern = "_web.stable_lights.avg_vis.tif")]
+            remove_files <- remove_files[-grep(
+              remove_files, pattern = "_web.cf_cvg.tif")]
+            unlink(paste0(light_location, "/",
+                          remove_files), recursive = TRUE)
 
-          } else if (file.exists(lightfile_test) & file.exists(qualityfile_test)){
-            print(paste0("The light file and quality file for ", year, " are already downloaded."))
+          } else if (file.exists(lightfile_test) &
+                     file.exists(qualityfile_test)){
+            print(paste0("The light file and quality file for ", year,
+                         " are already downloaded."))
           }
 
         } # end test loop
@@ -205,31 +232,47 @@ nightlight_download <- function(area_names = "world",
         }
 
         # test whether lightfile and/or qualityfile is already downloaded
-        lightfile_test <- paste0(light_location, "/", stump2, stump3, ".avg_vis.tif")
-        qualityfile_test <- paste0(light_location, "/", stump2, stump3, ".cf_cvg.tif")
+        lightfile_test <- paste0(light_location, "/",
+                                 stump2, stump3, ".avg_vis.tif")
+        qualityfile_test <- paste0(light_location, "/",
+                                   stump2, stump3, ".cf_cvg.tif")
 
         if(!file.exists(lightfile_test) | !file.exists(qualityfile_test)){
 
-          utils::download.file(url = paste0(stump1, stump2, stump3, ".geotiff.tgz"), destfile = paste0(light_location, "/", stump2, stump3, ".geotiff.tgz"), mode = "wb")
-          R.utils::gunzip(filename = paste0(light_location, "/", stump2, stump3, ".geotiff.tgz"),
-                          destname = paste0(light_location, "/", stump2, stump3, ".geotiff.tar"))
-          utils::untar(paste0(light_location, "/", stump2, stump3, ".geotiff.tar"),
+          utils::download.file(url = paste0(stump1, stump2, stump3,
+                                            ".geotiff.tgz"),
+                               destfile = paste0(light_location, "/",
+                                                 stump2, stump3,
+                                                 ".geotiff.tgz"),
+                               mode = "wb")
+          R.utils::gunzip(filename = paste0(light_location, "/",
+                                            stump2, stump3, ".geotiff.tgz"),
+                          destname = paste0(light_location, "/",
+                                            stump2, stump3, ".geotiff.tar"))
+          utils::untar(paste0(light_location, "/",
+                              stump2, stump3, ".geotiff.tar"),
                        exdir = paste0(light_location, "/"))
 
           remove_files <- list.files(light_location)
-          remove_files <- remove_files[grep(remove_files, pattern = stump2)]
-          remove_files <- remove_files[-grep(remove_files, pattern = "_rad_v4.avg_vis.tif")]
-          remove_files <- remove_files[-grep(remove_files, pattern = "_rad_v4.cf_cvg.tif")]
+          remove_files <- remove_files[grep(remove_files,
+                                            pattern = stump2)]
+          remove_files <- remove_files[-grep(remove_files,
+                                             pattern = "_rad_v4.avg_vis.tif")]
+          remove_files <- remove_files[-grep(remove_files,
+                                             pattern = "_rad_v4.cf_cvg.tif")]
           unlink(paste0(light_location, "/", remove_files), recursive = TRUE)
 
-        } else if (file.exists(lightfile_test) & file.exists(qualityfile_test)){
-          print(paste0("The light file and quality file for ", year, " are already downloaded."))
+        } else if (file.exists(lightfile_test) &
+                   file.exists(qualityfile_test)){
+          print(paste0("The light file and quality file for ", year,
+                       " are already downloaded."))
         }
 
       } # end sequence loop
 
     } else if (corrected_lights == TRUE & harmonized_lights == TRUE){
-      stop("Please choose either harmonized, corrected or standard yearly lights.")
+      stop(paste0("Please choose either harmonized, corrected or ",
+                  "standard yearly lights."))
 
     } else if (corrected_lights == FALSE & harmonized_lights == TRUE){
 
@@ -301,11 +344,13 @@ nightlight_download <- function(area_names = "world",
 
         if (numericyear >= 1992 & numericyear < 2014){
           utils::download.file(url = paste0(stump1, stump2),
-                               destfile = paste0(light_location, "/", stump3, year, stump_dmsp),
+                               destfile = paste0(light_location, "/",
+                                                 stump3, year, stump_dmsp),
                                mode = "wb")
         } else if (numericyear >= 2014){
           utils::download.file(url = paste0(stump1, stump2),
-                               destfile = paste0(light_location, "/", stump3, year, stump_viirs),
+                               destfile = paste0(light_location, "/",
+                                                 stump3, year, stump_viirs),
                                mode = "wb")
         }
 
@@ -315,7 +360,8 @@ nightlight_download <- function(area_names = "world",
 
   } else if (lightdata_time == "monthly"){
 
-    stumpurl = "https://eogdata.mines.edu/pages/download_dnb_composites_iframe.html"
+    stumpurl = paste0("https://eogdata.mines.edu/pages/",
+    "download_dnb_composites_iframe.html")
 
     # Scrape the links directly from the overview page
     overview_page <- xml2::read_html(stumpurl)
@@ -325,7 +371,8 @@ nightlight_download <- function(area_names = "world",
     if ((!is.null(user_coordinates) & area_names == "world") |
         (!is.null(shapefiles) & area_names == "world")){
       area_names <-  c("")
-    } # in case someone gives coordinates or shapefiles but leaves area_names at world,
+    } # in case someone gives coordinates or shapefiles but l
+    # eaves area_names at world,
     # this gives the area an empty name
     # so the "world" download will not be activated
 
@@ -339,22 +386,30 @@ nightlight_download <- function(area_names = "world",
 
         if (nchar(month) == 1){
           month <- paste0("0", month)
-        } # month needs to be in 2-digit format for following lightfile-search string
+        } # month needs to be in 2-digit format for following
+        # lightfile-search string
 
         yearmonth <- paste0(year, month)
 
-        if (month == "01" | month == "03" | month == "05" | month == "07" | month == "08" | month == "10" | month == "12"){
+        if (month == "01" | month == "03" | month == "05" |
+            month == "07" | month == "08" | month == "10" |
+            month == "12"){
           numberdays <- c("31")
-        } else if (month == "04" | month == "06" | month == "09" | month == "11"){
+        } else if (month == "04" | month == "06" |
+                   month == "09" | month == "11"){
           numberdays <- c("30")
-        } else if (month == "02" & numericyear %% 4 == 0 & numericyear %% 100 != 0){
+        } else if (month == "02" &
+                   numericyear %% 4 == 0 &
+                   numericyear %% 100 != 0){
           numberdays <- c("29")
-        } else if (month == "02" & numericyear %% 400 == 0){
+        } else if (month == "02" &
+                   numericyear %% 400 == 0){
           numberdays <- c("29")
         } else {
           numberdays <- c("28")
         }
-        yearmonthspan <- paste0(yearmonth, "01-", yearmonth, numberdays)
+        yearmonthspan <- paste0(yearmonth, "01-",
+                                yearmonth, numberdays)
 
         links_current <- links[grep(links, pattern = yearmonthspan)]
 
@@ -378,34 +433,53 @@ nightlight_download <- function(area_names = "world",
             tilestump <- "00N060E"
           }
 
-          links_current_tile <- links_current[grep(links_current, pattern = tilestump)]
+          links_current_tile <- links_current[grep(links_current,
+                                                   pattern = tilestump)]
 
           if (corrected_lights == FALSE){
-            links_current_tile <- links_current_tile[grep(links_current_tile, pattern = "vcmcfg")]
+            links_current_tile <- links_current_tile[grep(links_current_tile,
+                                                          pattern = "vcmcfg")]
           } else if (corrected_lights == TRUE){
-            links_current_tile <- links_current_tile[grep(links_current_tile, pattern = "vcmslcfg")]
+            links_current_tile <- links_current_tile[grep(links_current_tile,
+                                                          pattern = "vcmslcfg")]
           }
           lightfile_test <- strsplit(links_current_tile, "/")
           lightfile_test <- lightfile_test[[1]][11]
           lightfile_test <- strsplit(lightfile_test, ".tgz")
-          lightfile_test1 <- paste0(light_location, "/", lightfile_test, ".avg_rade9.tif")
-          lightfile_test2 <- paste0(light_location, "/", lightfile_test, ".avg_rade9h.tif")
-          qualityfile_test <- paste0(light_location, "/", lightfile_test, ".cf_cvg.tif")
+          lightfile_test1 <- paste0(light_location, "/",
+                                    lightfile_test,
+                                    ".avg_rade9.tif")
+          lightfile_test2 <- paste0(light_location, "/",
+                                    lightfile_test,
+                                    ".avg_rade9h.tif")
+          qualityfile_test <- paste0(light_location, "/",
+                                     lightfile_test,
+                                     ".cf_cvg.tif")
 
           if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2)) |
              !(file.exists(qualityfile_test))){
             utils::download.file(links_current_tile,
-                                 destfile = paste0(light_location, "/", yearmonth, ".tgz"), mode = "wb")
+                                 destfile = paste0(light_location, "/",
+                                                   yearmonth, ".tgz"),
+                                 mode = "wb")
 
-            R.utils::gunzip(filename = paste0(light_location, "/", yearmonth, ".tgz"),
-                            destname = paste0(light_location, "/", yearmonth, "_unzipped.tar"))
+            R.utils::gunzip(filename = paste0(light_location, "/",
+                                              yearmonth, ".tgz"),
+                            destname = paste0(light_location, "/",
+                                              yearmonth, "_unzipped.tar"))
 
-            utils::untar(paste0(light_location, "/", yearmonth, "_unzipped.tar"),
+            utils::untar(paste0(light_location, "/",
+                                yearmonth, "_unzipped.tar"),
                          exdir = paste0(light_location, "/"))
 
-            unlink(paste0(light_location, "/", yearmonth, "_unzipped.tar"), recursive = TRUE)
-          } else if ((file.exists(lightfile_test1) | file.exists(lightfile_test2)) & file.exists(qualityfile_test)){
-            print(paste0("The light file and quality file for tile ", tilenumber, ", ", year, "/", month, " are already downloaded."))
+            unlink(paste0(light_location, "/", yearmonth, "_unzipped.tar"),
+                   recursive = TRUE)
+          } else if ((file.exists(lightfile_test1) |
+                      file.exists(lightfile_test2)) &
+                     file.exists(qualityfile_test)){
+            print(paste0("The light file and quality file for tile ",
+                         tilenumber, ", ", year, "/", month,
+                         " are already downloaded."))
           }
 
         } # end tilenumbers loop
@@ -417,433 +491,59 @@ nightlight_download <- function(area_names = "world",
 
       for (i in 1:length(area_names)){
 
-
-        # begin sourcefile "get_shapefile"
-
-
-        help_shapefile <- help_shapefiles[i]
-        shapefile <- shapefiles[i]
-        # these are either provided by the user and hence activated at this point
-        # or shapefile will be NULL and help_shapefile will be NA and shapefile will be detected or downloaded later
-
-        # if shapefile available at this point, its type is detected and it is read with the according function
-
-        if (!is.na(help_shapefile)){
-          if (length(grep(help_shapefile, pattern = ".rds")) != 0){
-            shapefile <- readRDS(shapefile)
-            if (class(shapefile)[1] == "sf"){
-              stop("Unfortunately, the function does not work with sf.rds shapefiles. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
-            }
-          } else if (length(grep(help_shapefile, pattern = ".shp")) != 0 |
-                     length(grep(help_shapefile, pattern = ".kml")) != 0){
-            shapefile <- rgdal::readOGR(shapefile)
-          } else if (length(grep(help_shapefile, pattern = ".gpkg")) != 0){
-            layers_all <- rgdal::ogrListLayers(help_shapefile)
-            layer <- layers_all[grep(as.character(admlevel), layers_all)]
-            if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-              adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-              layer_index <- match(max(adm_matches), adm_matches)
-              layer <- layer[layer_index]
-            } # this will find the layer in which the admlevel number most often appears.
-            # the reason to do it this way is because (even within GADM), layers are
-            # sometimes in ascending, sometimes in descending order. so a general approach
-            # e.g. for ascending order "admlevel + 1" or descending order
-            # "length(layers) - admlevel" does not work. plus, this is more robust to other
-            # types of shapefiles than GADM as well.
-            shapefile <- rgdal::readOGR(help_shapefile, layer)
-          } else {
-            stop("Unfortunately, the function does not work the format of your shapefile. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
-          }
-        }
-
-        if(!is.null(user_coordinates)){
-          extent <- raster::extent(user_coordinates)
-          extent_bbox <- sp::bbox(extent)
-          shapefile <- as(extent, "SpatialPolygons")
-          raster::crs(shapefile) <- "+init=epsg:4326"
-          shapefile <- sp::SpatialPolygonsDataFrame(shapefile, data.frame(N = c("1"), row.names = c("1")))
-        } # creates a rectangular shapefile if user provides coordinates
-
-        ISO3s <- suppressWarnings(countrycode::countrycode(area_names,
-                                                           origin = "country.name",
-                                                           destination = "iso3c",
-                                                           custom_match = c('Akrotiri and Dhekelia' = 'XAD',
-                                                                            'Caspian Sea' = 'XCA',
-                                                                            'Clipperton Island' = 'XCL',
-                                                                            'Kosovo' = 'XKO',
-                                                                            'Micronesia' = 'FSM',
-                                                                            'Paracel Islands' = 'XPI',
-                                                                            'Saint-Martin' = 'MAF',
-                                                                            'Saint Martin' = 'MAF',
-                                                                            'Spratly Islands' = 'XSP'))) # these countries have GADM shapefiles but are not recognized by countrycode
-
         area_name <- area_names[i]
         ISO3 <- ISO3s[i]
 
         if (is.na(ISO3)){
-          print(paste0("There is no iso3c countrycode for ", area_name, ", hence download from GADM will not work. Either your shapefile is not a country or, if it is a country, the countryname was not recognized correctly."))
+          print(paste0("An iso3c countrycode for ", area_name, "could not be ",
+                       "found, hence the download from GADM will not work. ",
+                       "Either your shapefile is not a country or, if it is a ",
+                       "country, the countryname was not recognized correctly."))
         }
 
-        # check if shapefile is already downloaded
-        # check for every format. will preferably find
-        # sp.rds, then .shp, .kml, .gpkg in this order
-
-        # first: check for GADM shapefiles which are identified by ISO3 and admlevel
-        if (!is.na(ISO3)){ # need this if condition because otherwise some files are detected by ISO3 = NA. for some reason only .gkpg files
-          # sp.rds
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = ".rds")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-            if (length(help_shapefile) == 1){
-              shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
-              if (class(shapefile)[1] == "sf"){
-                stop("Unfortunately, the function does not work with sf.rds shapefiles. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
-              }
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .rds shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .shp
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = ".shp")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-            if (length(help_shapefile) == 1){
-              shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .shp shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .shp but still zipped as .zip
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            if (length(help_shapefile) == 1){
-              help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-              help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
-              help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-              shapefile <- rgdal::readOGR(help_shapefile)
-              zipfile <- list.files(shapefile_location, pattern = "shp.zip")
-              zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
-              unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .shp shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .kml
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = ".kml")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-            if (length(help_shapefile) == 1){
-              shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .kml shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .kml but still zipped as .kmz
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = ".kmz")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            if (length(help_shapefile) == 1){
-              help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-              shapefile <- rgdal::readOGR(help_shapefile)
-              zipfile <- list.files(shapefile_location, pattern = ".kmz")
-              zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
-              unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .kml shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .gpkg
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            if (length(help_shapefile) == 1){
-              layers_all <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
-              layer <- layers_all[grep(as.character(admlevel), layers_all)]
-              if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-                adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-                layer_index <- match(max(adm_matches), adm_matches)
-                layer <- layer[layer_index]
-              } # this will find the layer in which the admlevel number most often appears.
-              # the reason to do it this way is because (even within GADM), layers are
-              # sometimes in ascending, sometimes in descending order. so a general approach
-              # e.g. for ascending order "admlevel + 1" or descending order
-              # "length(layers) - admlevel" does not work. plus, this is more robust to other
-              # types of shapefiles than GADM.
-              shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layer)
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-          # .gpkg but still zipped as .zip
-          if (is.null(shapefile)){
-            help_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-            if (length(help_shapefile) == 1){
-              help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-              help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-              layers_all <- rgdal::ogrListLayers(help_shapefile)
-              layer <- layers_all[grep(as.character(admlevel), layers_all)]
-              if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-                adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-                layer_index <- match(max(adm_matches), adm_matches)
-                layer <- layer[layer_index]
-              } # this will find the layer in which the admlevel number most often appears.
-              # the reason to do it this way is because (even within GADM), layers are
-              # sometimes in ascending, sometimes in descending order. so a general approach
-              # e.g. for ascending order "admlevel + 1" or descending order
-              # "length(layers) - admlevel" does not work. plus, this is more robust to other
-              # types of shapefiles than GADM.
-              shapefile <- rgdal::readOGR(help_shapefile, layer)
-              zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
-              zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
-              unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          }
-        }
-
-        # then: check for shapefiles that are identified by the name given by the user in area_names
-        # sp.rds
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = ".rds")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
-            if (class(shapefile)[1] == "sf"){
-              stop("Unfortunately, the function does not work with sf.rds shapefiles. If no other option is available to you, you can try using the min/max x- and y-coordinates of your shapefile in the function input instead.")
-            }
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .rds shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          }
-        }
-        # .shp
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = ".shp")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .shp shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          }
-        }
-        # .shp but still zipped as .zip
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = "shp.zip")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
-            if (length(help_shapefile) == 1){
-              shapefile <- rgdal::readOGR(help_shapefile)
-              zipfile <- list.files(shapefile_location, pattern = "shp.zip")
-              zipfile <- zipfile[grep(zipfile, pattern = area_name)]
-              unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-            } else if (length(help_shapefile) > 1){
-              stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-            }
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          } # the outer error message refers to non-unique shapefile zip names, the inner one to non-unique shapefile names when unpacked (for gadm shapefiles above, this is unique because they always have the admlevel in the name as well. but if the code searches for adm level here, shapefiles with no admlevel e.g. cities are excluded)
-        }
-        # .kml
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = ".kml")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .kml shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          }
-        }
-        # .kml but still zipped as .kmz
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = ".kmz")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-            shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile))
-            zipfile <- list.files(shapefile_location, pattern = ".kmz")
-            zipfile <- zipfile[grep(zipfile, pattern = area_name)]
-            unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .kml shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          } # for kmz there is only one shapefile per zipfile so only 1 error message is necessary
-        }
-        # .gpkg
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = ".gpkg")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            layers_all <- rgdal::ogrListLayers(paste0(shapefile_location, "/", help_shapefile))
-            layer <- layers_all[grep(as.character(admlevel), layers_all)]
-            if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-              adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-              layer_index <- match(max(adm_matches), adm_matches)
-              layer <- layer[layer_index]
-            } # this will find the layer in which the admlevel number most often appears.
-            # the reason to do it this way is because (even within GADM), layers are
-            # sometimes in ascending, sometimes in descending order. so a general approach
-            # e.g. for ascending order "admlevel + 1" or descending order
-            # "length(layers) - admlevel" does not work. plus, this is more robust to other
-            # types of shapefiles than GADM.
-            shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", help_shapefile), layer)
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          }
-        }
-        # .gpkg but still zipped as .zip
-        if (is.null(shapefile)){
-          help_shapefile <- list.files(shapefile_location, pattern = "gpkg.zip")
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-          if (length(help_shapefile) == 1){
-            help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-            help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-            layers_all <- rgdal::ogrListLayers(help_shapefile)
-            layer <- layers_all[grep(as.character(admlevel), layers_all)]
-            if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-              adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-              layer_index <- match(max(adm_matches), adm_matches)
-              layer <- layer[layer_index]
-            } # this will find the layer in which the admlevel number most often appears.
-            # the reason to do it this way is because (even within GADM), layers are
-            # sometimes in ascending, sometimes in descending order. so a general approach
-            # e.g. for ascending order "admlevel + 1" or descending order
-            # "length(layers) - admlevel" does not work. plus, this is more robust to other
-            # types of shapefiles than GADM.
-            shapefile <- rgdal::readOGR(help_shapefile, layer)
-            zipfile <- list.files(shapefile_location, pattern = "gpkg.zip")
-            zipfile <- zipfile[grep(zipfile, pattern = area_name)]
-            unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-          } else if (length(help_shapefile) > 1){
-            stop(paste0("Please enter the filename of your .gpkg shapefile for ", area_name, " by hand using the shapefiles argument. It could not be loaded automatically.") )
-          }
-        }
-
-        # if shapefile is not downloaded yet: download from GADM
-        stumpurl1 <- "https://biogeo.ucdavis.edu/data/gadm3.6/"
-        stumpurl2 <- "/gadm36_"
-        # sp.rds
-        if (is.null(shapefile) & download_shape == "sp.rds"){
-          utils::download.file(paste0(stumpurl1, "Rsp", stumpurl2, ISO3, "_", admlevel, "_sp.rds"),
-                               destfile = paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, "_sp.rds"), mode = "wb")
-          help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, "_sp.rds")
-          shapefile <- readRDS(help_shapefile)
-        }
-        # .shp
-        if (is.null(shapefile) & download_shape == ".shp"){
-          utils::download.file(paste0(stumpurl1, "shp", stumpurl2, ISO3, "_shp.zip"),
-                               destfile = paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip"), mode = "wb")
-          help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip")
-          help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-          shapefile <- rgdal::readOGR(help_shapefile)
-          unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_shp.zip"), recursive = TRUE)
-        }
-        # .kml
-        if (is.null(shapefile) & download_shape == ".kml"){
-          utils::download.file(paste0(stumpurl1, "kmz", stumpurl2, ISO3, "_", admlevel, ".kmz"),
-                               destfile = paste0(shapefile_location, "/",  "gadm36_", ISO3, "_", admlevel, ".kmz"), mode = "wb")
-          help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, ".kmz")
-          help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
-          shapefile <- rgdal::readOGR(help_shapefile)
-          unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_", admlevel, ".kmz"), recursive = TRUE)
-        }
-        # .gpkg
-        if (is.null(shapefile) & download_shape == ".gpkg"){
-          utils::download.file(paste0(stumpurl1, "gpkg", stumpurl2 , ISO3, "_gpkg.zip"),
-                               destfile = paste0(shapefile_location, "/",  "gadm36_", ISO3, "_gpkg.zip"), mode = "wb")
-          help_shapefile <- paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip")
-          help_shapefile <- utils::unzip(zipfile = help_shapefile, exdir = shapefile_location)
-          help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-          layers_all <- rgdal::ogrListLayers(help_shapefile)
-          layer <- layers_all[grep(as.character(admlevel), layers_all)]
-          if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-            adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
-            layer_index <- match(max(adm_matches), adm_matches)
-            layer <- layer[layer_index]
-          } # this will find the layer in which the admlevel number most often appears.
-          # the reason to do it this way is because (even within GADM), layers are
-          # sometimes in ascending, sometimes in descending order. so a general approach
-          # e.g. for ascending order "admlevel + 1" or descending order
-          # "length(layers) - admlevel" does not work. plus, this is more robust to other
-          # types of shapefiles than GADM.
-          shapefile <- rgdal::readOGR(help_shapefile, layer)
-          unlink(paste0(shapefile_location, "/", "gadm36_", ISO3, "_gpkg.zip"), recursive = TRUE)
-        }
-
-        # the following is only for the case that coordinates of the shapefile are not in longlat format - in that case transform it into longlat
-        shapefileprojection <- suppressWarnings(raster::crs(shapefile))
-        shapefileprojection <- as.character(shapefileprojection)
-        if (length(shapefileprojection[grep(shapefileprojection, pattern = "longlat")]) == 0){
-          shapefile <- suppressWarnings(sp::spTransform(shapefile, CRSobj = "+init=epsg:4326"))
-        }
-
-        if (is.null(user_coordinates)){
-          extent <- raster::extent(shapefile)
-          extent_bbox <- sp::bbox(extent)
-        }
-
-        xmin = extent_bbox[1,1]
-        xmax = extent_bbox[1,2]
-        ymin = extent_bbox[2,1]
-        ymax = extent_bbox[2,2]
-
-        # search for tiles on which the shapefile is located
-        if (lightdata_time == "monthly"){
-          tilenumbers <- c()
-          if (ymax > 0 & c(xmin < -60 | xmax < -60)){
-            tilenumbers <- append(tilenumbers, "1")
-          }
-          if (ymax > 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
-            tilenumbers <- append(tilenumbers, "2")
-          }
-          if (ymax > 0 & c(xmin > 60 | xmax > 60)){
-            tilenumbers <- append(tilenumbers, "3")
-          }
-          if (ymin < 0 & c(xmin < -60 | xmax < -60)){
-            tilenumbers <- append(tilenumbers, "4")
-          }
-          if (ymin < 0 & c(c(xmin > -60 & xmin < 60) | c(xmax > -60 & xmax < 60))){
-            tilenumbers <- append(tilenumbers, "5")
-          }
-          if (ymin < 0 & c(xmin > 60 | xmax > 60)){
-            tilenumbers <- append(tilenumbers, "6")
-          }
-        }
-
-
-        # end sourcefile "get_shapefile"
-
+        get_shapefile(i = i,
+                      area_name = area_name,
+                      ISO3 = ISO3,
+                      help_shapefiles = help_shapefiles,
+                      shapefiles = shapefiles,
+                      admlevel = admlevel,
+                      gpkg_layer = gpkg_layer,
+                      user_coordinates = user_coordinates,
+                      shapefile_location = shapefile_location,
+                      download_shape = download_shape,
+                      lightdata_time = lightdata_time)
 
         for (t in 1:length(tilenumbers)){
 
           tilenumber <- tilenumbers[t]
 
           for (j in 1:length(sequence)){
-            # build a string out of date and search for lightdata that matches this date
+            # build a string out of date and search for lightdata that
+            # matches this date
             year <- as.character(data.table::year(sequence[j]))
             numericyear <- as.numeric(year)
             month <- as.character(data.table::month(sequence[j]))
 
             if (nchar(month) == 1){
               month <- paste0("0", month)
-            } # month needs to be in 2-digit format for following lightfile-search string
+            } # month needs to be in 2-digit format for following
+            # lightfile-search string
 
             yearmonth <- paste0(year, month)
 
-            if (month == "01" | month == "03" | month == "05" | month == "07" | month == "08" | month == "10" | month == "12"){
+            if (month == "01" | month == "03" | month == "05" |
+                month == "07" | month == "08" | month == "10" |
+                month == "12"){
               numberdays <- c("31")
-            } else if (month == "04" | month == "06" | month == "09" | month == "11"){
+            } else if (month == "04" | month == "06" |
+                       month == "09" | month == "11"){
               numberdays <- c("30")
-            } else if (month == "02" & numericyear %% 4 == 0 & numericyear %% 100 != 0){
+            } else if (month == "02" &
+                       numericyear %% 4 == 0 &
+                       numericyear %% 100 != 0){
               numberdays <- c("29")
-            } else if (month == "02" & numericyear %% 400 == 0){
+            } else if (month == "02" &
+                       numericyear %% 400 == 0){
               numberdays <- c("29")
             } else {
               numberdays <- c("28")
@@ -866,34 +566,50 @@ nightlight_download <- function(area_names = "world",
               tilestump <- "00N060E"
             }
 
-            links_current <- links_current[grep(links_current, pattern = tilestump)]
+            links_current <- links_current[grep(links_current,
+                                                pattern = tilestump)]
             if (corrected_lights == FALSE){
-              links_current <- links_current[grep(links_current, pattern = "vcmcfg")]
+              links_current <- links_current[grep(links_current,
+                                                  pattern = "vcmcfg")]
             } else if (corrected_lights == TRUE){
-              links_current <- links_current[grep(links_current, pattern = "vcmslcfg")]
+              links_current <- links_current[grep(links_current,
+                                                  pattern = "vcmslcfg")]
             }
             # test whether light file and/or quality file is already downloaded
             lightfile_test <- strsplit(links_current, "/")
             lightfile_test <- lightfile_test[[1]][11]
             lightfile_test <- strsplit(lightfile_test, ".tgz")
-            lightfile_test1 <- paste0(light_location, "/", lightfile_test, ".avg_rade9.tif")
-            lightfile_test2 <- paste0(light_location, "/", lightfile_test, ".avg_rade9h.tif")
-            qualityfile_test <- paste0(light_location, "/", lightfile_test, ".cf_cvg.tif")
+            lightfile_test1 <- paste0(light_location, "/",
+                                      lightfile_test, ".avg_rade9.tif")
+            lightfile_test2 <- paste0(light_location, "/",
+                                      lightfile_test, ".avg_rade9h.tif")
+            qualityfile_test <- paste0(light_location, "/",
+                                       lightfile_test, ".cf_cvg.tif")
 
             if(!(file.exists(lightfile_test1) | file.exists(lightfile_test2)) |
                !(file.exists(qualityfile_test))){
               utils::download.file(links_current,
-                                   destfile = paste0(light_location, "/", yearmonth, ".tgz"), mode = "wb")
+                                   destfile = paste0(light_location, "/",
+                                                     yearmonth, ".tgz"),
+                                   mode = "wb")
 
-              R.utils::gunzip(filename = paste0(light_location, "/", yearmonth, ".tgz"),
-                              destname = paste0(light_location, "/", yearmonth, "_unzipped.tar"))
+              R.utils::gunzip(filename = paste0(light_location, "/",
+                                                yearmonth, ".tgz"),
+                              destname = paste0(light_location, "/",
+                                                yearmonth, "_unzipped.tar"))
 
-              utils::untar(paste0(light_location, "/", yearmonth, "_unzipped.tar"),
+              utils::untar(paste0(light_location, "/",
+                                  yearmonth, "_unzipped.tar"),
                            exdir = paste0(light_location, "/"))
 
-              unlink(paste0(light_location, "/", yearmonth, "_unzipped.tar"), recursive = TRUE)
-            } else if ((file.exists(lightfile_test1) | file.exists(lightfile_test2)) & file.exists(qualityfile_test)){
-              print(paste0("The light file and quality file for tile ", tilenumber, ", ", year, "/", month, " are already downloaded."))
+              unlink(paste0(light_location, "/", yearmonth,
+                            "_unzipped.tar"), recursive = TRUE)
+            } else if ((file.exists(lightfile_test1) |
+                        file.exists(lightfile_test2)) &
+                       file.exists(qualityfile_test)){
+              print(paste0("The light file and quality file for tile ",
+                           tilenumber, ", ", year, "/", month,
+                           " are already downloaded."))
             }
 
           } # end sequence loop
