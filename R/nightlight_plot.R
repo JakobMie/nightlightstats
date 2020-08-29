@@ -128,6 +128,21 @@ nightlight_plot <- function(area_names,
                    "your shapefile is not a country or, if it is a country, ",
                    "the countryname was not recognized correctly."))
     }
+    
+    # check whether the given adm level exists for the country
+    # (in case it is a country). do that by simply checking whether an rds url
+    # on GADM exists (for this file type, each adm level has its separate url,
+    # which makes things easy)
+    
+    if (!is.na(ISO3)){
+      test_url <- paste0("https://biogeo.ucdavis.edu/data/gadm3.6/Rsp",
+                         "/gadm36_", ISO3, "_", admlevel, "_sp.rds")
+      if (!RCurl::url.exists(test_url)){
+        print(paste0("There is no adm level ", admlevel, " for ", area_name,
+                     ". The area was skipped."))
+        next
+      }
+    }
 
     get_shapefile(i = i,
                   area_name = area_name,

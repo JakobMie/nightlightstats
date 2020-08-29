@@ -146,6 +146,21 @@ nightlight_calculate <- function(area_names,
                    "your shapefile is not a country or, if it is a country, ",
                    "the countryname was not recognized correctly."))
     }
+    
+    # check whether the given adm level exists for the country
+    # (in case it is a country). do that by simply checking whether an rds url
+    # on GADM exists (for this file type, each adm level has its separate url,
+    # which makes things easy)
+    
+    if (!is.na(ISO3)){
+      test_url <- paste0("https://biogeo.ucdavis.edu/data/gadm3.6/Rsp",
+                         "/gadm36_", ISO3, "_", admlevel, "_sp.rds")
+      if (!RCurl::url.exists(test_url)){
+        print(paste0("There is no adm level ", admlevel, " for ", area_name,
+                     ". The area was skipped."))
+        next
+      }
+    }
 
     get_shapefile(i = i,
                   area_name = area_name,
@@ -407,35 +422,82 @@ nightlight_calculate <- function(area_names,
       all_aggregated <- rbind(all_aggregated, aggregated)
 
       if (rawdata == TRUE){
-        rawdata_values <- data.frame(suppressWarnings(
+        
+        rawdata_list <- suppressWarnings(
           raster::extract(
             lightdata_uncut,
             shapefile,
-            cellnumbers = TRUE)))
+            cellnumbers = TRUE))
+        
+        rawdata_values <- data.frame(cell = 0, value = 0)
+        
+        if (!is.null(shapefile$NAME_5)){
+          rawdata_values$NAME_5 <- ""
+        }
+        
+        if (!is.null(shapefile$NAME_4)){
+          rawdata_values$NAME_4 <- ""
+        }
+        
+        if (!is.null(shapefile$NAME_3)){
+          rawdata_values$NAME_3 <- ""
+        }
+        
+        if (!is.null(shapefile$NAME_2)){
+          rawdata_values$NAME_2 <- ""
+        }
+        
+        if (!is.null(shapefile$NAME_1)){
+          rawdata_values$NAME_1 <- ""
+        }
+        
+        rawdata_values <- rawdata_values[-c(1),]
+        
+        for (l in 1:length(rawdata_list)){
+          current_df <- data.frame(rawdata_list[[l]])
+          
+          if (!is.null(shapefile$NAME_5)){
+            current_df$NAME_5 <- shapefile@data[["NAME_5"]][l]
+          }
+          
+          if (!is.null(shapefile$NAME_4)){
+            current_df$NAME_4 <- shapefile@data[["NAME_4"]][l]
+          }
+          
+          if (!is.null(shapefile$NAME_3)){
+            current_df$NAME_3 <- shapefile@data[["NAME_3"]][l]
+          }
+          
+          if (!is.null(shapefile$NAME_2)){
+            current_df$NAME_2 <- shapefile@data[["NAME_2"]][l]
+          }
+          
+          if (!is.null(shapefile$NAME_1)){
+            current_df$NAME_1 <- shapefile@data[["NAME_1"]][l]
+          }
+          rawdata_values <- rbind(rawdata_values, current_df)
+        }
         rawdata_values <- cbind(
           rawdata_values,
           raster::coordinates(lightdata_uncut)[rawdata_values[,1],]
-          )
+        )
         colnames(rawdata_values)[colnames(rawdata_values) ==
                                    "cell"] <- "cellnumber"
         colnames(rawdata_values)[colnames(rawdata_values) ==
                                    "value"] <- "lightvalue"
+        
         if (harmonized_lights == FALSE){
-          rawdata_quality <- data.frame(
-            suppressWarnings(raster::extract(
-              qualitydata_uncut, shapefile, cellnumbers = TRUE))
-            )
+          rawdata_quality_list <- suppressWarnings(raster::extract(
+            qualitydata_uncut, shapefile, cellnumbers = TRUE))
+          rawdata_quality <- data.frame(cell = 0, value = 0)[-c(1),]
+          for (l in 1:length(rawdata_quality_list)){
+            rawdata_quality <- rbind(rawdata_quality,
+                                     data.frame(rawdata_quality_list[[l]]))
+          }
+          
           rawdata_values <- cbind(rawdata_values, rawdata_quality$value)
           colnames(rawdata_values)[colnames(rawdata_values) ==
                                      "rawdata_quality$value"] <- "number_obs"
-          rawdata_values <- rawdata_values[,c("cellnumber",
-                                              "lightvalue",
-                                              "number_obs",
-                                              "x", "y")]
-        } else if (harmonized_lights == TRUE){
-          rawdata_values <- rawdata_values[,c("cellnumber",
-                                              "lightvalue",
-                                              "x", "y")]
         }
         if (lightdata_time == "monthly"){
           rawdata_name <- paste0("rawlights_",
