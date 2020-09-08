@@ -38,8 +38,8 @@ or
 
     nightlight_download(
     time = c("2013-01", "2013-12"),
-    light_location = "D:/nightlights")
-    user_coordinates = c(5.866, 15.042, 47.270, 55.057)
+    light_location = "D:/nightlights",
+    user_coordinates = c(5.866, 15.042, 47.270, 55.057))
 
 In the first example, the shapefile of Germany will automatically be downloaded from the GADM database (only possible for countries), or, if there is already a shapefile for Germany present in your `shapefile_location`, it will automatically be detected. In the second example, you simply provide the minimum and maximum coordinates of Germany (the order is xmin, xmax, ymin, ymax). The downloaded tile (in this case just one) will be the same, but no shapefile will be downloaded from GADM if you input the set of coordinates.
 
