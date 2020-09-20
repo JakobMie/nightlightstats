@@ -2,7 +2,7 @@
 
 Night light satellite data can be useful as a proxy for economic activity in regions for which no GDP data are available, for example at the sub-national level, or for regions in which GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
 
-This R package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
+This package was built using the code of the paper "The Elusive Banker. Using Hurricanes to Uncover (Non-)Activity in Offshore Financial Centers" by Jakob Miethe but while that paper only focuses on small island economies, this package allows construction of nightlight statistics for most geospatial units on the planet which is hopefully useful for researchers in other areas. The R package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
 
 To install the package, run `devtools::install_github("JakobMie/nightlightstats")`.
 
