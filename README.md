@@ -1,47 +1,32 @@
 # nightlightstats
 
-Night light satellite data can be useful as a proxy for economic activity in regions for which no GDP data are available, for example at the sub-national level, or for regions in which GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012). 
+Night light satellite data can be useful as a proxy for economic activity in regions for which no GDP data are available, for example at the sub-national level, or for regions in which GDP measurement is of poor quality, for example in some developing countries (see e.g. Henderson et al., 2012).
 
 This package was built using the code of the paper "The Elusive Banker. Using Hurricanes to Uncover (Non-)Activity in Offshore Financial Centers" by Jakob Miethe but while that paper only focuses on small island economies, this package allows construction of nightlight statistics for most geospatial units on the planet which is hopefully useful for researchers in other areas. The R package allows to perform calculations on night light satellite data and build databases for any given region using the function `nightlight_calculate`. Plots of the night lights in the desired area are also made very easy with `nightlight_plot`.
 
 To install the package, run `devtools::install_github("JakobMie/nightlightstats")`.
 
-You can either work with yearly DMSP data ranging from 1992 to 2013 (https://www.ngdc.noaa.gov/eog/dmsp/downloadV4composites.html - Image and data processing by NOAA's National Geophysical Data Center, DMSP data collected by US Air Force Weather Agency) or monthly VIIRS data beginning in Apr 2012 (https://eogdata.mines.edu/download_dnb_composites.html - Earth Observation Group, Payne Institute for Public Policy). The package (if desired) automatically downloads spatial data by country for any administrative level from GADM (https://gadm.org/data.html).
+You can either work with yearly DMSP data ranging from 1992 to 2013 (https://www.ngdc.noaa.gov/eog/dmsp/downloadV4composites.html - Image and data processing by NOAA's National Geophysical Data Center, DMSP data collected by US Air Force Weather Agency) or monthly VIIRS data beginning in Apr 2012 (https://eogdata.mines.edu/products/vnl/ - Earth Observation Group, Payne Institute for Public Policy, Elvidge et al., 2013). The package (if desired) automatically downloads spatial data by country for any administrative level from GADM (https://gadm.org/data.html).
  
-At the time of writing, the yearly VIIRS data are not uploaded so the package does not process these data. Please contact the authors if you notice that this has changed. 
+Yearly VIIRS data are now available at https://eogdata.mines.edu/nighttime_light/annual/v20/. The package does not yet process these data.
 
 If at any point you experience trouble with the calculation capacities of your computer because the region you want to investigate is too large, you can take a look at the auxiliary function `slice_shapefile` which conveniently cuts a region into smaller pieces.
 
 ## nightlight_download
 
-You will want to use this function first if you want to start working with night light satellite data. The function is simply a tool that facilitates downloading the data, so you do not have to do that by hand.
+You can download DMSP night light satellite data with this function. 
+
+Note: as the Colorado School of Mines has changed the access to their VIIRS nighttime light data to require a free user account, you have to download the VIIRS data manually via their website. For further information, see https://payneinstitute.mines.edu/eog-2/transition-to-secured-data-access/.
 
 A note about the disk space used by the files: The yearly data are of lower resolution than the monthly data and take up less space (1 yearly DMSP image for the whole world = 1/16 space of a monthly VIIRS image for the whole world). Hence, yearly data will probably be fine on your normal drive (all years together ca. 45 GB incl. quality files), but working with monthly data likely requires an external drive (about 1.5+ TB for all files incl. quality files). Quality files (recognizable by the ending cf_cvg) show how many observations went into the value of a pixel in the aggregated night light image in a given period.
 
-For the yearly data, you can just use the `time` argument. The DMSP data are available per year in one image for the whole world. To download all of the data at once, you can input:
+The DMSP data are available per year in one image for the whole world. The only relevant information is the timespan and the location where you want to save the images on your drive. For example, to download all of the data ranging from 1992 to 2013 at once, you can input the following into the function:
 
     nightlight_download(
     time = c("1992", "2013"),
     light_location = "D:/nightlights")
 
-Monthly VIIRS images divide the whole world into 6 geographic tiles. You have the option of either downloading only the tile you need (by inputting geographic information, either through coordinates or using a shapefile) or by downloading all 6 tiles (by providing no geographic information). Note: it may happen that the region you want to analyze is overlapping on two or more of these tiles. In that case, all of them will be downloaded.
-
-For example, if you only want to analyze the night lights of Germany in the year 2013, you can input:
-
-    nightlight_download(
-    area_names = "Germany",
-    time = c("2013-01", "2013-12"),
-    shapefile_location = "D:/shapefiles",
-    light_location = "D:/nightlights")
-    
-or
-
-    nightlight_download(
-    time = c("2013-01", "2013-12"),
-    light_location = "D:/nightlights",
-    user_coordinates = c(5.866, 15.042, 47.270, 55.057))
-
-In the first example, the shapefile of Germany will automatically be downloaded from the GADM database (only possible for countries), or, if there is already a shapefile for Germany present in your `shapefile_location`, it will automatically be detected. In the second example, you simply provide the minimum and maximum coordinates of Germany (the order is xmin, xmax, ymin, ymax). The downloaded tile (in this case just one) will be the same, but no shapefile will be downloaded from GADM if you input the set of coordinates.
+Monthly VIIRS images divide the whole world into 6 geographic tiles. It may happen that the region you want to analyze is overlapping on two or more of these tiles, so in order to analyze that region, you would need to download all relevant tiles. You can check which tiles to download by using the coordinates of your area, or you can just download all tiles.
 
 ## nightlight_calculate
 
@@ -116,7 +101,7 @@ In case you input a set of coordinates, you will get an image with a rectangular
   <figcaption>VIIRS Monthly light means for Moscow, non straylight-corrected version.</figcaption>
 </figure>
 
-- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version (see Mills et al., 2013) by setting `corrected_lights` to TRUE. These are different images, so you have to download them first by setting this argument to TRUE in `nightlight_download` as well. The trade-off is that these data are of reduced quality.
+- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version (see Mills et al., 2013) by setting `corrected_lights` to TRUE. These are different images, so you have to download them first as well. The trade-off is that these data are of reduced quality.
 
 - You can also work with a harmonized DMSP-VIIRS yearly dataset spanning from 1992 to 2018 (see Li et al., 2020, available at https://figshare.com/articles/Harmonization_of_DMSP_and_VIIRS_nighttime_light_data_from_1992-2018_at_the_global_scale/9828827/2). To use these data, you have to set `harmonized_lights` to TRUE in all functions. The harmonized dataset is built with the non straylight-corrected VIIRS data. The VIIRS data are cleaned from disturbances due to aurora and temporal lights and then matched to the resolution and top-coding of the DMSP data. The DMSP data are temporally calibrated to ensure temporal consistency. The data are already produced with quality weights; separate quality files are not included in the dataset. Note that these data occupy way less space than the other ones, with about 40 MB per yearly image.
 
@@ -128,6 +113,8 @@ In case you input a set of coordinates, you will get an image with a rectangular
 - Bluhm, R. & Krause, M. (2018). Top lights - Bright cities and their contribution to economic development. CESifo Working Paper No. 7411.
 
 - Doll, C. (2008). CIESIN thematic guide to night-time light remote sensing and its applications. Center for International Earth Science Information Network, Columbia University, New York.
+
+- Elvidge, C. D., Baugh, K. E., Zhizhin, M., & Hsu, F.-C. (2013). Why VIIRS data are superior to DMSP for mapping nighttime lights. Asia-Pacific Advanced Network 35(35), 62.
 
 - Gibson, J., Olivia, S. Boe-Gibson, G. (2020). Night lights in economics: Sources and uses. CSAE Working Paper Series 2020-01, Centre for the Study of African Economies, University of Oxford.
 
