@@ -3,6 +3,8 @@ source_setup <- function(light_location,
                          time,
                          area_names,
                          shapefiles){
+  
+  options(timeout = 86400) # Set download timeout to 1 day
 
   # need the locations without "/" at the end.
   # in case user types this with "/", remove that
