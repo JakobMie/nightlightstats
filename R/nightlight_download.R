@@ -278,65 +278,71 @@ nightlight_download <- function(area_names = "world",
       for (j in 1:length(sequence)){
         year <- sequence[j]
         
-        stump1 <- "https://ndownloader.figshare.com/files/17626"
+        stump1 <- "https://figshare.com/ndownloader/files/"
         stump3 <- "Harmonized_DN_NTL_"
         stump_dmsp <- "_calDMSP.tif"
         stump_viirs <- "_simVIIRS.tif"
         
         if (year == "1992"){
-          stump2 <- "052"
+          stump2 <- "17626052"
         } else if (year == "1993"){
-          stump2 <- "055"
+          stump2 <- "17626055"
         } else if (year == "1994"){
-          stump2 <- "061"
+          stump2 <- "17626061"
         } else if (year == "1995"){
-          stump2 <- "067"
+          stump2 <- "17626067"
         } else if (year == "1996"){
-          stump2 <- "070"
+          stump2 <- "17626070"
         } else if (year == "1997"){
-          stump2 <- "073"
+          stump2 <- "17626073"
         } else if (year == "1998"){
-          stump2 <- "079"
+          stump2 <- "17626079"
         } else if (year == "1999"){
-          stump2 <- "082"
+          stump2 <- "17626082"
         } else if (year == "2000"){
-          stump2 <- "085"
+          stump2 <- "17626085"
         } else if (year == "2001"){
-          stump2 <- "088"
+          stump2 <- "17626088"
         } else if (year == "2002"){
-          stump2 <- "091"
+          stump2 <- "17626091"
         } else if (year == "2003"){
-          stump2 <- "094"
+          stump2 <- "17626094"
         } else if (year == "2004"){
-          stump2 <- "097"
+          stump2 <- "17626097"
         } else if (year == "2005"){
-          stump2 <- "100"
+          stump2 <- "17626100"
         } else if (year == "2006"){
-          stump2 <- "103"
+          stump2 <- "17626103"
         } else if (year == "2007"){
-          stump2 <- "109"
+          stump2 <- "17626109"
         } else if (year == "2008"){
-          stump2 <- "016"
+          stump2 <- "17626016"
         } else if (year == "2009"){
-          stump2 <- "019"
+          stump2 <- "17626019"
         } else if (year == "2010"){
-          stump2 <- "022"
+          stump2 <- "17626022"
         } else if (year == "2011"){
-          stump2 <- "025"
+          stump2 <- "17626025"
         } else if (year == "2012"){
-          stump2 <- "031"
+          stump2 <- "17626031"
         } else if (year == "2013"){
-          stump2 <- "034"
+          stump2 <- "17626034"
         } else if (year == "2014"){
-          stump2 <- "037"
+          stump2 <- "17626037"
         } else if (year == "2015"){
-          stump2 <- "040"
+          stump2 <- "17626040"
         } else if (year == "2016"){
-          stump2 <- "043"
+          stump2 <- "17626043"
         } else if (year == "2017"){
-          stump2 <- "046"
+          stump2 <- "17626046"
         } else if (year == "2018"){
-          stump2 <- "049"
+          stump2 <- "17626049"
+        } else if (year == "2019"){
+          stump2 <- "26477462"
+        } else if (year == "2020"){
+          stump2 <- "28166733"
+        } else if (year == "2021"){
+          stump2 <- "34751056"
         }
         
         numericyear <- as.numeric(year)
@@ -352,9 +358,7 @@ nightlight_download <- function(area_names = "world",
                                                  stump3, year, stump_viirs),
                                mode = "wb")
         }
-        
       } # end sequence loop
-      
     } # end corrected_lights if condition
     
   } else if (lightdata_time == "monthly"){
