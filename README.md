@@ -88,7 +88,7 @@ In case you input a set of coordinates, you will get an image with a rectangular
 
 - There is a [Matlab code](https://github.com/alexeiabrahams/nighttime-lights) to de-blur the DMSP data (see Abrahams et al., 2018).
 
-- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2018). There is a version of the DMSP data that has no top-coding, although only for the years 1996, 1999, 2000, 2003, 2004, 2006 and 2010 (available at https://eogdata.mines.edu/dmsp/download_radcal.html). You can use these images by setting `corrected_lights` to TRUE. These are different data, so you have to download them first by setting this argument to TRUE in `nightlight_download` as well (unzipping these files takes quite long and they are larger than the normal DMSP files, about 6GB per yearly file incl. quality file). Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2018).
+- You could use a Pareto distribution to circumvent top-coding and extrapolate light values e.g. in city centers (see Bluhm & Krause, 2022). You can use these images by setting `corrected_lights` to TRUE. The files are available via the website of Melanie Krause at https://www.melanie-krause.de/data.html. You can download the filesby setting `corrected_lights` to TRUE in `nightlight_download` as well. Note that these radiance-calibrated data come with their own problems (see again Bluhm and Krause, 2022).
 
 - Temporal consistency is not an issue with the VIIRS data, since the light values are consistently calibrated and standardized to describe a fixed unit of radiance (nano Watts / cm2 / steradian).
 
@@ -101,16 +101,16 @@ In case you input a set of coordinates, you will get an image with a rectangular
   <figcaption>VIIRS Monthly light means for Moscow, non straylight-corrected version.</figcaption>
 </figure>
 
-- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version (see Mills et al., 2013) by setting `corrected_lights` to TRUE. These are different images, so you have to download them first as well. The trade-off is that these data are of reduced quality.
+- To increase coverage during summer months for the monthly VIIRS data, you can use a straylight-corrected VIIRS version (see Mills et al., 2013) by setting `corrected_lights` to TRUE. These are different VIIRS images, so you have to manually download them first as well. The trade-off is that these data are of reduced quality.
 
-- You can also work with a harmonized DMSP-VIIRS yearly dataset spanning from 1992 to 2018 (see Li et al., 2020, available at https://figshare.com/articles/Harmonization_of_DMSP_and_VIIRS_nighttime_light_data_from_1992-2018_at_the_global_scale/9828827/2). To use these data, you have to set `harmonized_lights` to TRUE in all functions. The harmonized dataset is built with the non straylight-corrected VIIRS data. The VIIRS data are cleaned from disturbances due to aurora and temporal lights and then matched to the resolution and top-coding of the DMSP data. The DMSP data are temporally calibrated to ensure temporal consistency. The data are already produced with quality weights; separate quality files are not included in the dataset. Note that these data occupy way less space than the other ones, with about 40 MB per yearly image.
+- You can also work with a harmonized DMSP-VIIRS yearly dataset spanning from 1992 onwards (see Li et al., 2020, available at https://figshare.com/articles/dataset/Harmonization_of_DMSP_and_VIIRS_nighttime_light_data_from_1992-2018_at_the_global_scale/9828827/7). To use these data, you have to set `harmonized_lights` to TRUE in all functions. The harmonized dataset is built with the non straylight-corrected VIIRS data. The VIIRS data are cleaned from disturbances due to aurora and temporal lights and then matched to the resolution and top-coding of the DMSP data. The DMSP data are temporally calibrated to ensure temporal consistency. The data are already produced with quality weights; separate quality files are not included in the dataset. 
 
 
 ## References
 
 - Abrahams, A., Oram, C., & Lozano-Gracia, N. (2018). Deblurring DMSP nighttime lights: A new method using Gaussian filters and frequencies of illumination. Remote Sensing of Environment, 210, 242-258.
 
-- Bluhm, R. & Krause, M. (2018). Top lights - Bright cities and their contribution to economic development. CESifo Working Paper No. 7411.
+- Bluhm, R. & Krause, M. (2022). Top lights - Bright cities and their contribution to economic development. Journal of Development Economics 157, 102880.
 
 - Doll, C. (2008). CIESIN thematic guide to night-time light remote sensing and its applications. Center for International Earth Science Information Network, Columbia University, New York.
 

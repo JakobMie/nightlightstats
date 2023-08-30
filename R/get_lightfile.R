@@ -252,53 +252,129 @@ get_lightfile <- function(j,
       }
 
     } else if (corrected_lights == TRUE & harmonized_lights == FALSE){
-
-      if (year == "1996"){
-        dmsp_stump <- "F12_19960316-19970212"
-      } else if (year == "1999"){
-        dmsp_stump <- "F12_19990119-19991211"
-      } else if (year == "2000"){
-        dmsp_stump <- "F12-F15_20000103-20001229"
-      } else if (year == "2003"){
-        dmsp_stump <- "F14-F15_20021230-20031127"
-      } else if (year == "2004"){
-        dmsp_stump <- "F14_20040118-20041216"
-      } else if (year == "2006"){
-        dmsp_stump <- "F16_20051128-20061224"
-      } else if (year == "2010"){
-        dmsp_stump <- "F16_20100111-20101209"
-      } else {
-        skip_period <- TRUE # sequence fills all years, so skip to next year
-        # if current one is not covered by corrected DMSP.
-        # the actual skipping is done outside of this helper function,
-        # to avoid an error in devtools::check() that "next" is used with no
-        # visible loop present
+      # select consistent dmsp version according to the start/ end
+      # of the time sequence.
+      # if this is not possible, choose the newest dmsp version for each year.
+      # always check if the required files exist.
+      F10_years = as.character(seq(1992, 1994, by = 1))
+      F12_years = as.character(seq(1994, 1999, by = 1))
+      F14_years = as.character(seq(1997, 2003, by = 1))
+      F15_years = as.character(seq(2000, 2007, by = 1))
+      F16_years = as.character(seq(2004, 2009, by = 1))
+      F18_years = as.character(seq(2010, 2013, by = 1))
+      
+      dmsp_stump <- NULL
+      
+      # now follow not "else if "conditions but "if" conditions, so the
+      # newer consistent version will overwrite the older one
+      # if for the selected years there are 2 consistent versions
+      if (sequence[1] %in% F10_years &
+          utils::tail(sequence, 1) %in% F10_years){
+        dmsp_stump <- "F10"
+        dmsp_consistent <- TRUE
       }
-
-      list_light <- list.files(light_location, pattern = "avg_vis.tif")
-      lightdata <- list_light[grep("rad_v4", list_light)]
-      lightdata <- lightdata[grep(dmsp_stump, lightdata)]
+      if (sequence[1] %in% F12_years &
+          utils::tail(sequence, 1) %in% F12_years){
+        dmsp_stump <- "F12"
+        dmsp_consistent <- TRUE
+      }
+      if (sequence[1] %in% F14_years &
+          utils::tail(sequence, 1) %in% F14_years){
+        dmsp_stump <- "F14"
+        dmsp_consistent <- TRUE
+      }
+      if (sequence[1] %in% F15_years &
+          utils::tail(sequence, 1) %in% F15_years){
+        dmsp_stump <- "F15"
+        dmsp_consistent <- TRUE
+      }
+      if (sequence[1] %in% F16_years &
+          utils::tail(sequence, 1) %in% F16_years){
+        dmsp_stump <- "F16"
+        dmsp_consistent <- TRUE
+      }
+      if (sequence[1] %in% F18_years &
+          utils::tail(sequence, 1) %in% F18_years){
+        dmsp_stump <- "F18"
+        dmsp_consistent <- TRUE
+      }
+      # if at this point no consistent version was found, select
+      # the newest version for each year
+      if (is.null(dmsp_stump)){
+        if (year == "1992" |
+            year == "1993"){
+          dmsp_stump <- "F10"
+          dmsp_consistent <- FALSE
+        } else if (year == "1994" |
+                   year == "1995" |
+                   year == "1996"){
+          dmsp_stump <- "F12"
+          dmsp_consistent <- FALSE
+        } else if (year == "1997" |
+                   year == "1998" |
+                   year == "1999"){
+          dmsp_stump <- "F14"
+          dmsp_consistent <- FALSE
+        } else if (year == "2000" |
+                   year == "2001" |
+                   year == "2002" |
+                   year == "2003"){
+          dmsp_stump <- "F15"
+          dmsp_consistent <- FALSE
+        } else if (year == "2004" |
+                   year == "2005" |
+                   year == "2006" |
+                   year == "2007" |
+                   year == "2008" |
+                   year == "2009"){
+          dmsp_stump <- "F16"
+          dmsp_consistent <- FALSE
+        } else if (year == "2010" |
+                   year == "2011" |
+                   year == "2012" |
+                   year == "2013"){
+          dmsp_stump <- "F18"
+          dmsp_consistent <- FALSE
+        }
+      }
+      
+      list_light <- list.files(light_location, pattern = "_Corrected.tif")
+      lightdata <- list_light[grep(dmsp_stump, list_light)]
+      lightdata <- lightdata[grep(year, lightdata)]
       if (length(lightdata) == 1){
         lightdata <- paste0(light_location, "/", lightdata)
         lightdata <- raster::raster(lightdata)
         lightdata <- raster::crop(lightdata, extent)
-      } else {
-        stop(paste0("The light file for ", year,
-                    " could not be found in your light location."))
+      } else { # if user does not have this DMSP version of the light file,
+        # search if there is another one, only defined by year. since there are
+        # max. 2 versions per year, this should find the other one if it is
+        # there. if not, the error message will occur
+        light_list_alternative <- list_light[grep(year, list_light)]
+        if (length(lightdata) == 1){
+          lightdata <- paste0(light_location, "/", light_list_alternative)
+          dmsp_consistent <- FALSE
+          if (grepl("F10", lightdata) == TRUE){
+            dmsp_stump <- "F10"
+          } else if (grepl("F12", lightdata) == TRUE){
+            dmsp_stump <- "F12"
+          } else if (grepl("F14", lightdata) == TRUE){
+            dmsp_stump <- "F14"
+          } else if (grepl("F15", lightdata) == TRUE){
+            dmsp_stump <- "F15"
+          } else if (grepl("F16", lightdata) == TRUE){
+            dmsp_stump <- "F16"
+          } else if (grepl("F18", lightdata) == TRUE){
+            dmsp_stump <- "F18"
+          }
+          lightdata <- raster::raster(lightdata)
+          lightdata <- raster::crop(lightdata, extent)
+          
+        } else {
+          stop(paste0("The light file for ", year, " could not be found in ",
+                      "your light location."))
+        }
       }
-
-      list_quality <- list.files(light_location, pattern = "cf_cvg.tif")
-      qualitydata <- list_quality[grep("rad_v4", list_quality)]
-      qualitydata <- qualitydata[grep(dmsp_stump, qualitydata)]
-      if (length(qualitydata) == 1){
-        qualitydata <- paste0(light_location, "/", qualitydata)
-        qualitydata <- raster::raster(qualitydata)
-        qualitydata <- raster::crop(qualitydata, extent)
-      } else {
-        stop(paste0("The quality file for ", year,
-                    " could not be found in your light location."))
-      }
-
+      
     } else if (corrected_lights == TRUE & harmonized_lights == TRUE){
       stop(paste0("Please choose either standard, ",
                   "corrected or harmonized yearly lights."))

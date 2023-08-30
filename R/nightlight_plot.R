@@ -74,7 +74,8 @@
 #' @param corrected_lights Default is FALSE. If set to TRUE, the
 #' radiance-calibrated version of the DMSP data or the straylight-corrected
 #' version of the VIIRS data will be used. Note that you have to download these
-#' versions first, since they are different images from the standard ones.
+#' versions first, since they are different images from the standard ones. The data
+#' refer to the corrected lights by Bluhm and Krause (2022).
 #' @param harmonized_lights Default is FALSE. If set to TRUE, the harmonized
 #' DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you
 #' have to download these versions first, since they are different images
@@ -280,7 +281,6 @@ nightlight_plot <- function(area_names,
   } # end area loop
 
   if (lightdata_time == "yearly" &
-      corrected_lights == FALSE &
       harmonized_lights == FALSE){
     if (dmsp_consistent == TRUE | length(sequence) == 1){
       print(paste0("The consistent DMSP version selected for your timespan is ",

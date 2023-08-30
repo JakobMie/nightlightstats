@@ -51,7 +51,8 @@
 #' Can be specified if you want to download night lights for a region
 #' defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.
 #' @param corrected_lights Default is FALSE. If set to TRUE, the
-#' radiance-calibrated version of the DMSP data will be downloaded.
+#' radiance-calibrated version of the DMSP data will be downloaded. The data
+#' refer to the corrected lights by Bluhm and Krause (2022).
 #' @param harmonized_lights Default is FALSE. If set to TRUE, the harmonized
 #' DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you
 #' have to download these versions first, since they are different images from
@@ -205,67 +206,75 @@ nightlight_download <- function(area_names = "world",
       
     } else if (corrected_lights == TRUE & harmonized_lights == FALSE){
       
-      stump1 <- "https://eogdata.mines.edu/wwwdata/dmsp/rad_cal/"
-      stump3 <- "_rad_v4"
-      
+      stump1 <- "https://download.melanie-krause.de/lights/individual-years/"
+      stump3 <- "_Corrected.tif.tar.gz"
+        
       for (j in 1:length(sequence)){
         year <- sequence[j]
-        
-        if (year == "1996"){
-          stump2 <- "F12_19960316-19970212"
-        } else if (year == "1999"){
-          stump2 <- "F12_19990119-19991211"
-        } else if (year == "2000"){
-          stump2 <- "F12-F15_20000103-20001229"
-        } else if (year == "2003"){
-          stump2 <- "F14-F15_20021230-20031127"
-        } else if (year == "2004"){
-          stump2 <- "F14_20040118-20041216"
-        } else if (year == "2006"){
-          stump2 <- "F16_20051128-20061224"
-        } else if (year == "2010"){
-          stump2 <- "F16_20100111-20101209"
-        } else {
-          next # sequence fills all years, so skip to next year if current one
-          # is not covered by corrected DMSP
+        if (year == "1992" |
+            year == "1993"){
+          stump2_all <- paste0("F10", year)
+        } else if (year == "1994"){
+          stump2_all <- c(paste0("F10", year),
+                          paste0("F12", year))
+        } else if (year == "1995" |
+                   year == "1996"){
+          stump2_all <- paste0("F12", year)
+        } else if (year == "1997" |
+                   year == "1998" |
+                   year == "1999"){
+          stump2_all <- c(paste0("F12", year),
+                          paste0("F14", year))
+        } else if (year == "2000" |
+                   year == "2001" |
+                   year == "2002" |
+                   year == "2003"){
+          stump2_all <- c(paste0("F14", year),
+                          paste0("F15", year))
+        } else if (year == "2004" |
+                   year == "2005" |
+                   year == "2006" |
+                   year == "2007"){
+          stump2_all <- c(paste0("F15", year),
+                          paste0("F16", year))
+        } else if (year == "2008" |
+                   year == "2009"){
+          stump2_all <- paste0("F16", year)
+        } else if (year == "2010" |
+                   year == "2011" |
+                   year == "2012" |
+                   year == "2013"){
+          stump2_all <- paste0("F18", year)
         }
         
-        # test whether lightfile and/or qualityfile is already downloaded
-        lightfile_test <- paste0(light_location, "/",
-                                 stump2, stump3, ".avg_vis.tif")
-        qualityfile_test <- paste0(light_location, "/",
-                                   stump2, stump3, ".cf_cvg.tif")
+        # test whether lightfile is already downloaded
+        # for years with multiple versions, do this for all versions
+        lightfile_test_all <- paste0(light_location, "/",
+                                     stump2_all, "_Corrected.tif")
         
-        if(!file.exists(lightfile_test) | !file.exists(qualityfile_test)){
+        for (g in 1:length(lightfile_test_all)){
           
-          utils::download.file(url = paste0(stump1, stump2, stump3,
-                                            ".geotiff.tgz"),
-                               destfile = paste0(light_location, "/",
-                                                 stump2, stump3,
-                                                 ".geotiff.tgz"),
-                               mode = "wb")
-          R.utils::gunzip(filename = paste0(light_location, "/",
-                                            stump2, stump3, ".geotiff.tgz"),
-                          destname = paste0(light_location, "/",
-                                            stump2, stump3, ".geotiff.tar"))
-          utils::untar(paste0(light_location, "/",
-                              stump2, stump3, ".geotiff.tar"),
-                       exdir = paste0(light_location, "/"))
+          lightfile_test <- lightfile_test_all[g]
+          stump2 <- stump2_all[g]
           
-          remove_files <- list.files(light_location)
-          remove_files <- remove_files[grep(remove_files,
-                                            pattern = stump2)]
-          remove_files <- remove_files[-grep(remove_files,
-                                             pattern = "_rad_v4.avg_vis.tif")]
-          remove_files <- remove_files[-grep(remove_files,
-                                             pattern = "_rad_v4.cf_cvg.tif")]
-          unlink(paste0(light_location, "/", remove_files), recursive = TRUE)
+          if(!file.exists(lightfile_test)){
+            
+            utils::download.file(url = paste0(stump1,
+                                              stump2,
+                                              stump3),
+                                 destfile = paste0(light_location, "/",
+                                                   stump2, "_Corrected.tif.tar.gz"),
+                                 mode = "wb")
+            R.utils::gunzip(paste0(light_location, "/", stump2, "_Corrected.tif.tar.gz"))
+            utils::untar(paste0(light_location, "/", stump2, "_Corrected.tif.tar"),
+                         exdir = paste0(light_location, "/"))
+            unlink(paste0(light_location, "/", stump2, "_Corrected.tif.tar"), recursive = TRUE)
+            
+          } else if (file.exists(lightfile_test)){
+            print(paste0("The light file(s) for ", year, " is(are) already downloaded."))
+          }
           
-        } else if (file.exists(lightfile_test) &
-                   file.exists(qualityfile_test)){
-          print(paste0("The light file and quality file for ", year,
-                       " are already downloaded."))
-        }
+        } # end test loop
         
       } # end sequence loop
       
