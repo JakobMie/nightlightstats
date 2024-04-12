@@ -47,8 +47,7 @@ get_shapefile <- function(i,
                       area_name, " by hand using the gpkg_layer argument."))
         }
       }
-    } else if (length(grep(help_shapefile, pattern = "shp")) != 0 |
-               length(grep(help_shapefile, pattern = "kml")) != 0){
+    } else if (length(grep(help_shapefile, pattern = "shp")) != 0){
       shapefile <- sf::st_read(shapefile)
     } else {
       stop(paste0("Unfortunately, the function does not work the format of ",
@@ -73,7 +72,7 @@ get_shapefile <- function(i,
   # if no shapefile available at this point:
   # check if shapefile is already downloaded
   # check for every format. will preferably find
-  # .gpkg, then .shp, .kml in this order
+  # .gpkg, then .shp
 
   # first: check for GADM shapefiles which are identified by ISO3 and admlevel
 
@@ -209,39 +208,39 @@ get_shapefile <- function(i,
       }
     }
     # .kml
-    if (is.null(shapefile)){
-      help_shapefile <- list.files(shapefile_location, pattern = "kml")
-      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-      if (length(help_shapefile) == 1){
-        shapefile <- sf::st_read(
-          paste0(shapefile_location, "/", help_shapefile))
-      } else if (length(help_shapefile) > 1){
-        stop(paste0("Please enter the filename of your .kml shapefile for ",
-                    area_name,
-                    " by hand using the shapefiles argument. It could not be ",
-                    "loaded automatically.") )
-      }
-    }
+    #if (is.null(shapefile)){
+    #  help_shapefile <- list.files(shapefile_location, pattern = "kml")
+    #  help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+    #  help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+    #  if (length(help_shapefile) == 1){
+    #    shapefile <- sf::st_read(
+    #      paste0(shapefile_location, "/", help_shapefile))
+    #  } else if (length(help_shapefile) > 1){
+    #    stop(paste0("Please enter the filename of your .kml shapefile for ",
+    #                area_name,
+    #                " by hand using the shapefiles argument. It could not be ",
+    #                "loaded automatically.") )
+    #  }
+    #}
     # .kml but still zipped as .kmz
-    if (is.null(shapefile)){
-      help_shapefile <- list.files(shapefile_location, pattern = "kmz")
-      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-      if (length(help_shapefile) == 1){
-        help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/",
-                                                        help_shapefile),
-                                       exdir = shapefile_location)
-        shapefile <- sf::st_read(help_shapefile)
-        zipfile <- list.files(shapefile_location, pattern = "kmz")
-        zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
-        unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-      } else if (length(help_shapefile) > 1){
-        stop(paste0("Please enter the filename of your .kml shapefile for ",
-                    area_name,
-                    " by hand using the shapefiles argument. It could not be ",
-                    "loaded automatically.") )
-      }
-    }
+    #if (is.null(shapefile)){
+    #  help_shapefile <- list.files(shapefile_location, pattern = "kmz")
+    #  help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
+    #  if (length(help_shapefile) == 1){
+    #    help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/",
+    #                                                    help_shapefile),
+    #                                   exdir = shapefile_location)
+    #    shapefile <- sf::st_read(help_shapefile)
+    #    zipfile <- list.files(shapefile_location, pattern = "kmz")
+    #    zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
+    #    unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
+    #  } else if (length(help_shapefile) > 1){
+    #    stop(paste0("Please enter the filename of your .kml shapefile for ",
+    #                area_name,
+    #                " by hand using the shapefiles argument. It could not be ",
+    #                "loaded automatically.") )
+    #  }
+    #}
 
   }
 
@@ -407,58 +406,56 @@ get_shapefile <- function(i,
     # shapefiles with no admlevel e.g. cities are excluded)
   }
   # .kml
-  if (is.null(shapefile)){
-    help_shapefile <- list.files(shapefile_location, pattern = "kml")
-    help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-    if (length(help_shapefile) == 1){
-      shapefile <- sf::st_read(paste0(
-        shapefile_location, "/", help_shapefile))
-    } else if (length(help_shapefile) > 1){
-      stop(paste0("Please enter the filename of your .kml shapefile for ",
-                  area_name, " by hand using the shapefiles argument. It ",
-                  "could not be loaded automatically.") )
-    }
-  }
+  #if (is.null(shapefile)){
+  #  help_shapefile <- list.files(shapefile_location, pattern = "kml")
+  #  help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+  #  if (length(help_shapefile) == 1){
+  #    shapefile <- sf::st_read(paste0(
+  #      shapefile_location, "/", help_shapefile))
+  #  } else if (length(help_shapefile) > 1){
+  #    stop(paste0("Please enter the filename of your .kml shapefile for ",
+  #                area_name, " by hand using the shapefiles argument. It ",
+  #                "could not be loaded automatically.") )
+  #  }
+  #}
   # .kml but still zipped as .kmz
-  if (is.null(shapefile)){
-    help_shapefile <- list.files(shapefile_location, pattern = "kmz")
-    help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-    if (length(help_shapefile) == 1){
-      help_shapefile <- utils::unzip(zipfile = paste0(
-        shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-      shapefile <- sf::st_read(paste0(shapefile_location, "/",
-                                         help_shapefile))
-      zipfile <- list.files(shapefile_location, pattern = "kmz")
-      zipfile <- zipfile[grep(zipfile, pattern = area_name)]
-      unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
-    } else if (length(help_shapefile) > 1){
-      stop(paste0("Please enter the filename of your .kml shapefile for ",
-                  area_name, " by hand using the shapefiles argument. It ",
-                  "could not be loaded automatically.") )
-    } # for kmz there is only one shapefile per zipfile so
-    # only 1 error message is necessary
-  }
+  #if (is.null(shapefile)){
+  #  help_shapefile <- list.files(shapefile_location, pattern = "kmz")
+  #  help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
+  #  if (length(help_shapefile) == 1){
+  #    help_shapefile <- utils::unzip(zipfile = paste0(
+  #      shapefile_location, "/", help_shapefile), exdir = shapefile_location)
+  #    shapefile <- sf::st_read(paste0(shapefile_location, "/",
+  #                                       help_shapefile))
+  #    zipfile <- list.files(shapefile_location, pattern = "kmz")
+  #    zipfile <- zipfile[grep(zipfile, pattern = area_name)]
+  #    unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
+  #  } else if (length(help_shapefile) > 1){
+  #    stop(paste0("Please enter the filename of your .kml shapefile for ",
+  #                area_name, " by hand using the shapefiles argument. It ",
+  #                "could not be loaded automatically.") )
+  #  } # for kmz there is only one shapefile per zipfile so
+  #  # only 1 error message is necessary
+  #}
 
   # if shapefile is not downloaded yet: download from GADM
-  stumpurl1 <- "https://biogeo.ucdavis.edu/data/gadm4.1/"
-  stumpurl2 <- "/gadm36_"
+  stumpurl1 <- "https://geodata.ucdavis.edu/gadm/gadm4.1/"
+  stumpurl2 <- "/gadm41_"
   
   # .gpkg
   if (is.null(shapefile) & download_shape == ".gpkg"){
     utils::download.file(paste0(stumpurl1, "gpkg",
-                                stumpurl2 , ISO3, "_gpkg.zip"),
+                                stumpurl2 , ISO3, ".gpkg"),
                          destfile = paste0(shapefile_location,
-                                           "/gadm41_", ISO3, "_gpkg.zip"),
+                                           "/gadm41_", ISO3, ".gpkg"),
                          mode = "wb")
     help_shapefile <- paste0(shapefile_location,
-                             "/gadm41_", ISO3, "_gpkg.zip")
-    help_shapefile <- utils::unzip(zipfile = help_shapefile,
-                                   exdir = shapefile_location)
+                             "/gadm41_", ISO3, ".gpkg")
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
     layers_all <- sf::st_layers(help_shapefile)[["name"]]
     layer <- layers_all[grep(as.character(admlevel), layers_all)]
     if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
-      #  e.g. when adm level 3 is chosen and all layers are called "gadm3_6..."
+      #  e.g. when adm level 3 is chosen and all layers are called "gadm4_1..."
       adm_matches <- stringr::str_count(layers_all, as.character(admlevel))
       layer_index <- match(max(adm_matches), adm_matches)
       layer <- layer[layer_index]
@@ -471,8 +468,6 @@ get_shapefile <- function(i,
     # "length(layers) - admlevel" does not work. plus, this is more
     # robust to other types of shapefiles than GADM as well.
     shapefile <- sf::st_read(help_shapefile, layer)
-    unlink(paste0(shapefile_location, "/gadm41_", ISO3, "_gpkg.zip"),
-           recursive = TRUE)
   }
   # .shp
   if (is.null(shapefile) & download_shape == ".shp"){
@@ -485,27 +480,27 @@ get_shapefile <- function(i,
     help_shapefile <- utils::unzip(zipfile = help_shapefile,
                                    exdir = shapefile_location)
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
-    help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
+    help_shapefile <- help_shapefile[grep(help_shapefile, pattern = paste0("_", admlevel))]
     shapefile <- sf::st_read(help_shapefile)
     unlink(paste0(shapefile_location, "/gadm41_", ISO3, "_shp.zip"),
            recursive = TRUE)
   }
   # .kml
-  if (is.null(shapefile) & download_shape == ".kml"){
-    utils::download.file(paste0(stumpurl1, "kmz", stumpurl2,
-                                ISO3, "_", admlevel, ".kmz"),
-                         destfile = paste0(shapefile_location,
-                                           "/gadm41_", ISO3, "_",
-                                           admlevel, ".kmz"), mode = "wb")
-    help_shapefile <- paste0(shapefile_location, "/gadm41_",
-                             ISO3, "_", admlevel, ".kmz")
-    help_shapefile <- utils::unzip(zipfile = help_shapefile,
-                                   exdir = shapefile_location)
-    shapefile <- sf::st_read(help_shapefile)
-    unlink(paste0(shapefile_location, "/gadm41_",
-                  ISO3, "_", admlevel, ".kmz"),
-           recursive = TRUE)
-  }
+  #if (is.null(shapefile) & download_shape == ".kml"){
+  #  utils::download.file(paste0(stumpurl1, "kmz", stumpurl2,
+  #                              ISO3, "_", admlevel, ".kmz"),
+  #                       destfile = paste0(shapefile_location,
+  #                                         "/gadm41_", ISO3, "_",
+  #                                         admlevel, ".kmz"), mode = "wb")
+  #  help_shapefile <- paste0(shapefile_location, "/gadm41_",
+  #                           ISO3, "_", admlevel, ".kmz")
+  #  help_shapefile <- utils::unzip(zipfile = help_shapefile,
+  #                                 exdir = shapefile_location)
+  #  shapefile <- sf::st_read(help_shapefile)
+  #  unlink(paste0(shapefile_location, "/gadm41_",
+  #                ISO3, "_", admlevel, ".kmz"),
+  #         recursive = TRUE)
+  #}
 
   # the following is only for the case that coordinates of the shapefile
   # are not in longlat format - in that case transform it into longlat

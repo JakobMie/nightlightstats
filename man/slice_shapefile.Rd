@@ -27,7 +27,7 @@ you want the area to be split up into as an integer here.}
 
 \item{gpkg_layer}{For .gpkg files, enter the layer here as a string.
 To find out which layers are included in your .gpkg shapefile, you can
-use rgdal::ogrListLayers().}
+use sf::st_layers().}
 }
 \description{
 This is an auxiliary function that allows cutting shapefiles into smaller

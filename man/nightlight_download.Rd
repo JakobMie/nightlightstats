@@ -20,8 +20,8 @@ nightlight_download(
 }
 \arguments{
 \item{area_names}{Default is "world", in which case data for the whole world
-will be downloaded (no difference for yearly data because there the whole
-world is one file; important for monthly data). String (vector) with the
+will be downloaded (no difference for yearly data DMSP because there the whole
+world is one file; important for monthly data). This is a string (vector) with the
 name(s) of your region(s). If you provide a country name, the country
 shapefile will be downloaded automatically. Shapefiles in your shapefile
 location that have the area_names or (in case they exist) their iso3c
@@ -48,7 +48,7 @@ which you enter in area_names or the iso3c countrycode (if it is a
 country) in its filename, it will be detected automatically and you do not
 have to use this argument.}
 
-\item{download_shape}{Default is ".gpkg". Change to ".rds", ".shp" or
+\item{download_shape}{Default is ".gpkg". Change to ".shp" or
 ".kml" if you want to download a different shapefile format from GADM. Will
 only download if no own shapefiles are provided in the shapefiles argument
 or automatically detected in the shapefile location.}
@@ -58,7 +58,7 @@ does not detect the correct layer of a .gpkg file automatically. This can
 happen if the layers of your .gpkg shapefile do not include an admlevel in
 their names. In that case, enter the layer here as a string. Note that this
 only works for one area at a time. To find out which layers are included
-in your .gpkg shapefile, you can use rgdal::ogrListLayers().}
+in your .gpkg shapefile, you can use sf::st_layers().}
 
 \item{admlevel}{Default is 0. Change this when working with different
 administrative levels.}
@@ -68,8 +68,8 @@ Can be specified if you want to download night lights for a region
 defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
 
 \item{corrected_lights}{Default is FALSE. If set to TRUE, the
-radiance-calibrated version of the DMSP data or the straylight-corrected
-version of the VIIRS data will be downloaded.}
+radiance-calibrated version of the DMSP data will be downloaded. The data
+refer to the corrected lights by Bluhm and Krause (2022).}
 
 \item{harmonized_lights}{Default is FALSE. If set to TRUE, the harmonized
 DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you
@@ -77,12 +77,12 @@ have to download these versions first, since they are different images from
 the standard ones.}
 }
 \description{
-Download nightlight data, either for the whole world or for a given region.
-Note: the yearly data is of lower resolution than the monthly data and takes
+You can download DMSP nightlight data with this function.
+Note: the yearly DMSP data are of lower resolution than the monthly VIIRS data and takes
 up less space (1 year image for the whole world = 1/16 space of a monthly
-image for the whole world). Hence, yearly data will be fine on your normal
+image for the whole world). Hence, yearly DMSP data will be fine on your normal
 drive (all years together ca. 45 GB incl. quality indicator files), but
-working with monthly data likely requires an external drive (about 1.5+
+working with monthly VIIRS data likely requires an external drive (about 1.5+
 TB for all files incl. quality indicator files). For some years,
 there are 2 DMSP versions available. The code downloads both. There are
 alternative data sources available, see the corrected_lights and

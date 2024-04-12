@@ -57,8 +57,7 @@ region which you enter in area_names or the iso3c countrycode
 (if it is a country) in its filename, it will be detected automatically and
 you do not have to use this argument.}
 
-\item{download_shape}{Default is ".gpkg". Change to ".rds", ".shp" or
-".kml" if you want to download a different shapefile format from GADM. Will
+\item{download_shape}{Default is ".gpkg", alternative is ".shp". Will
 only download if no own shapefiles are provided in the shapefiles argument
 or automatically detected in the shapefile location.}
 
@@ -67,16 +66,16 @@ does not detect the correct layer of a .gpkg file automatically. This can
 happen if the layers of your .gpkg shapefile do not include an admlevel in
 their names. In that case, enter the layer here as a string. Note that this
 only works for one area at a time. To find out which layers are included in
-your .gpkg shapefile, you can use rgdal::ogrListLayers().}
+your .gpkg shapefile, you can use sf::st_layers().}
 
 \item{admlevel}{Default is 0. Change this when working with different
 administrative levels. Important for nightlight_calculate: if your shapefile
 is not from GADM and features adm levels larger than 0, you must rename the
 column names to NAME_X, X being the admlevel. You can do this by reading
-the shapefile e.g. with readRDS() or rgdal::readOGR(), renaming the
-columns of the SpatialPolygonsDataFrame accordingly and then saving the
-shapefile again. Only with this naming will the calculation with lower
-admlevels work if the shapefile is not from GADM.}
+the shapefile, renaming the columns of the SpatialPolygonsDataFrame accordingly 
+and then saving the shapefile again. With this naming convention, the calculation 
+with lower admlevels will work if the shapefile is not from GADM, otherwise,
+this is not guaranteed.}
 
 \item{single_dataframes}{Default is FALSE. If set to TRUE, this will not
 only output a dataframe with all areas into the global environment, but also
@@ -125,7 +124,8 @@ defined by specific coordinates. Input order is xmin, xmax, ymin, ymax.}
 \item{corrected_lights}{Default is FALSE. If set to TRUE, the
 radiance-calibrated version of the DMSP data or the straylight-corrected
 version of the VIIRS data will be used. Note that you have to download these
-versions first, since they are different images from the standard ones.}
+versions first, since they are different images from the standard ones. The data
+refer to the corrected lights by Bluhm and Krause (2022).}
 
 \item{harmonized_lights}{Default is FALSE. If set to TRUE, the harmonized
 DMSP-VIIRS yearly dataset by Li et al. (2020) will be used. Note that you

@@ -33,8 +33,7 @@
 #' which you enter in area_names or the iso3c countrycode (if it is a country)
 #' in its filename, it will be detected automatically and you do not have to
 #' use this argument.
-#' @param download_shape Default is ".gpkg". Change to ".shp" or
-#' ".kml" if you want to download a different shapefile format from GADM. Will
+#' @param download_shape Default is ".gpkg", alternative is ".shp". Will
 #' only download if no own shapefiles are provided in the shapefiles argument
 #' or automatically detected in the shapefile location.
 #' @param gpkg_layer May be empty. You might need this argument if the code

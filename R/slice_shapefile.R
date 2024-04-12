@@ -55,23 +55,8 @@ slice_shapefile <- function(shapefile,
       stop(paste0("Please enter the layer of your .gpkg shapefile by ",
                   "hand using the gpkg_layer argument."))
     }
-  } else if (length(grep(shapefile, pattern = ".rds")) != 0){
-    shapefile_name <- strsplit(shapefile, ".rds")
-    shapefile_name_ending <- substr(shapefile,
-                                    start = nchar(shapefile) - 3,
-                                    stop = (nchar(shapefile)))
-    shapefile <- readRDS(paste0(shapefile_location, "/", shapefile))
-    if (class(shapefile)[1] == "sf"){
-      stop("Unfortunately, the function does not work with sf.rds shapefiles.")
-    }
   } else if (length(grep(shapefile, pattern = ".shp")) != 0){
     shapefile_name <- strsplit(shapefile, ".shp")
-    shapefile_name_ending <- substr(shapefile,
-                                    start = nchar(shapefile) - 3,
-                                    stop = (nchar(shapefile)))
-    shapefile <- sf::st_read(paste0(shapefile_location, "/", shapefile))
-  } else if (length(grep(shapefile, pattern = ".kml")) != 0){
-    shapefile_name <- strsplit(shapefile, ".kml")
     shapefile_name_ending <- substr(shapefile,
                                     start = nchar(shapefile) - 3,
                                     stop = (nchar(shapefile)))
