@@ -33,7 +33,7 @@
 #' which you enter in area_names or the iso3c countrycode (if it is a country)
 #' in its filename, it will be detected automatically and you do not have to
 #' use this argument.
-#' @param download_shape Default is ".gpkg". Change to ".rds", ".shp" or
+#' @param download_shape Default is ".gpkg". Change to ".shp" or
 #' ".kml" if you want to download a different shapefile format from GADM. Will
 #' only download if no own shapefiles are provided in the shapefiles argument
 #' or automatically detected in the shapefile location.
@@ -42,7 +42,7 @@
 #' happen if the layers of your .gpkg shapefile do not include an admlevel in
 #' their names. In that case, enter the layer here as a string. Note that this
 #' only works for one area at a time. To find out which layers are included in
-#' your .gpkg shapefile, you can use rgdal::ogrListLayers().
+#' your .gpkg shapefile, you can use sf::st_layers().
 #' @param admlevel Default is 0. Change this when working with different
 #' administrative levels.
 #' @param saveraster Default is FALSE. If set to TRUE, an additional RData
@@ -211,11 +211,8 @@ nightlight_plot <- function(area_names,
             colors = plotrix::smoothColors(colours[1], 100, colours[2]),
             na.value = colours[3]) +
           ggplot2::coord_quickmap() +
-          ggplot2::geom_path(data = shapefile,
-                             mapping = ggplot2::aes(x = long,
-                                                    y = lat,
-                                                    group = group),
-                             colour = colours[4]) +
+          ggplot2::geom_sf(data = shapefile,
+                             colour = colours[4], fill = NA) +
           ggplot2::labs(title = title) +
           ggplot2::scale_x_continuous(
             guide = ggplot2::guide_axis(check.overlap = TRUE)) +
@@ -242,11 +239,8 @@ nightlight_plot <- function(area_names,
                                           colours[1], 100, colours[2]),
                                         na.value = colours[3]) +
           ggplot2::coord_map(projection = user_projection) +
-          ggplot2::geom_path(data = shapefile,
-                             mapping = ggplot2::aes(x = long,
-                                                    y = lat,
-                                                    group = group),
-                             colour = colours[4]) +
+          ggplot2::geom_sf(data = shapefile,
+                             colour = colours[4], fill = NA) +
           ggplot2::labs(title = title) +
           ggplot2::scale_x_continuous(
             guide = ggplot2::guide_axis(check.overlap = TRUE)) +

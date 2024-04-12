@@ -31,7 +31,7 @@
 #' region which you enter in area_names or the iso3c countrycode
 #' (if it is a country) in its filename, it will be detected automatically and
 #' you do not have to use this argument.
-#' @param download_shape Default is ".gpkg". Change to ".rds", ".shp" or
+#' @param download_shape Default is ".gpkg". Change to ".shp" or
 #' ".kml" if you want to download a different shapefile format from GADM. Will
 #' only download if no own shapefiles are provided in the shapefiles argument
 #' or automatically detected in the shapefile location.
@@ -40,15 +40,15 @@
 #' happen if the layers of your .gpkg shapefile do not include an admlevel in
 #' their names. In that case, enter the layer here as a string. Note that this
 #' only works for one area at a time. To find out which layers are included in
-#' your .gpkg shapefile, you can use rgdal::ogrListLayers().
+#' your .gpkg shapefile, you can use sf::st_layers().
 #' @param admlevel Default is 0. Change this when working with different
 #' administrative levels. Important for nightlight_calculate: if your shapefile
 #' is not from GADM and features adm levels larger than 0, you must rename the
 #' column names to NAME_X, X being the admlevel. You can do this by reading
-#' the shapefile e.g. with readRDS() or rgdal::readOGR(), renaming the
-#' columns of the SpatialPolygonsDataFrame accordingly and then saving the
-#' shapefile again. Only with this naming will the calculation with lower
-#' admlevels work if the shapefile is not from GADM.
+#' the shapefile, renaming the columns of the SpatialPolygonsDataFrame accordingly 
+#' and then saving the shapefile again. With this naming convention, the calculation 
+#' with lower admlevels will work if the shapefile is not from GADM, otherwise,
+#' this is not guaranteed.
 #' @param single_dataframes Default is FALSE. If set to TRUE, this will not
 #' only output a dataframe with all areas into the global environment, but also
 #' a dataframe for each area specified in area_names.
@@ -114,35 +114,35 @@ nightlight_calculate <- function(area_names,
                                  user_coordinates = NULL,
                                  corrected_lights = FALSE,
                                  harmonized_lights = FALSE){
-
+  
   help_shapefiles <- area_name <- lightdata_time <- tilenumbers <- ISO3 <-
     ISO3s <- dmsp_consistent <- dmsp_stump <- skip_period <- extent <- year <-
     month <- NULL # set the variables to NULL first to bind variables so
   # there is no "binding for global variables" problem later
-
+  
   if (is.null(functions_calculate)){
     functions_calculate <- c("sum", "min", "mean", "max")
   }
-
+  
   if (is.null(shapefile_location) & is.null(user_coordinates)){
     stop(paste0("Please input geographical information, either by providing ",
-               "shapefiles (do not forget to use shapefile_location to ",
-               "specify the location on your drive) or a set of coordinates."))
+                "shapefiles (do not forget to use shapefile_location to ",
+                "specify the location on your drive) or a set of coordinates."))
   }
-
+  
   source_setup(light_location = light_location,
-        shapefile_location = shapefile_location,
-        time = time, area_names = area_names,
-        shapefiles = shapefiles)
-
-
+               shapefile_location = shapefile_location,
+               time = time, area_names = area_names,
+               shapefiles = shapefiles)
+  
+  
   for (i in 1:length(area_names)){
-
+    
     area_name <- area_names[i]
     ISO3 <- ISO3s[i]
-
+    
     if (is.na(ISO3)){
-      print(paste0("An iso3c countrycode for ", area_name, "could not be ",
+      print(paste0("An iso3c countrycode for ", area_name, " could not be ",
                    "found, hence the download from GADM will not work. Either ",
                    "your shapefile is not a country or, if it is a country, ",
                    "the countryname was not recognized correctly."))
@@ -159,7 +159,7 @@ nightlight_calculate <- function(area_names,
                   shapefile_location = shapefile_location,
                   download_shape = download_shape,
                   lightdata_time = lightdata_time)
-
+    
     # in case user did not set rectangle to TRUE: check for enclosed area
     # and set automatically
     if (is.null(rectangle_calculate)){
@@ -170,33 +170,24 @@ nightlight_calculate <- function(area_names,
         # areas. however, a lower-admlevel shapefile basically has to be
         # enclosed, so set to FALSE. if desired, the user can still override it
       } else if (admlevel == 0){
-        if (class(shapefile) != "SpatialPolygonsDataFrame"){
-          # spatial lines and points will have to be rectangularized
-          # there are some other uncommon formats that could maybe be enclosed.
-          # user will get a message about the rectangularization and can set
-          # FALSE manually.
-          rectangle_calculate <- TRUE
-        } else if (class(shapefile) == "SpatialPolygonsDataFrame"){
-          help_area <- suppressWarnings(raster::area(shapefile))
-          # there are some shapefiles that have a lot of features and
-          # calculate many areas even though it is only one geographical object,
-          # e.g. a map with city buildings. this will have to be
-          # rectangularized
-          if (length(help_area) == 1){
-            if (!is.na(help_area)){
-              rectangle_calculate <-  FALSE
-            } else if (is.na(help_area)){
-              rectangle_calculate <-  TRUE
-            }
-          } else if (length(help_area) != 1){
-            rectangle_calculate <-  TRUE
+        # there are some uncommon formats that could be rectangularized, even though
+        # they should not; the user will get a message about the rectangularization 
+        # and can set rectangle_calculate to FALSE manually if necessary
+        help_area <- suppressWarnings(sf::st_area(shapefile))
+        if (length(help_area) == 1){
+          if (!is.na(help_area)){
+            rectangle_calculate <- FALSE
+          } else if (is.na(help_area)){
+            rectangle_calculate <- TRUE
           }
+        } else if (length(help_area) != 1){
+          rectangle_calculate <- TRUE
         }
       }
     } else if (!is.null(rectangle_calculate)){
       rectangle_manual_setting <- TRUE
     }
-
+    
     # transform non-enclosed shapefile into a rectangle if
     # rectangle_calculate is TRUE
     if (rectangle_calculate == TRUE &
@@ -208,19 +199,20 @@ nightlight_calculate <- function(area_names,
       shapefile <- sp::SpatialPolygonsDataFrame(shapefile,
                                                 data.frame(N = c("1"),
                                                            row.names = c("1")))
+      shapefile <- sf::st_as_sf(shapefile)
       print(paste0("The shapefile for ", area_name , " features a ",
-      "non-enclosed area. The calculations will be performed on a ",
-      "rectangular version of the shapefile defined by its minimum and ",
-      "maximum extent."))
+                   "non-enclosed area. The calculations will be performed on a ",
+                   "rectangular version of the shapefile defined by its minimum and ",
+                   "maximum extent."))
     }
-
+    
     # at this point we have either an enclosed shapefile or a rectangle.
     # hence, an area can be calculated. for lower admlevels, area will output
     # as many values as there are regions of the lowest admlevel
-    area <- (suppressWarnings(raster::area(shapefile))) / (1000^2)
+    area <- as.numeric((suppressWarnings(sf::st_area(shapefile))) / (1000^2))
     # area is output in sq meters; convert to sq kilometers
-
-
+    
+    
     if (lightdata_time == "monthly"){
       all_aggregated <- data.frame(area_name = "",
                                    iso3c = "",
@@ -232,31 +224,31 @@ nightlight_calculate <- function(area_names,
                                    area_km2 = 0,
                                    year = 0)
     }
-
+    
     if (harmonized_lights == FALSE){
       all_aggregated$mean_obs = 0
     }
-
+    
     if (!is.null(shapefile$NAME_1)){
       all_aggregated$NAME_1 <- ""
     }
-
+    
     if (!is.null(shapefile$NAME_2)){
       all_aggregated$NAME_2 <- ""
     }
-
+    
     if (!is.null(shapefile$NAME_3)){
       all_aggregated$NAME_3 <- ""
     }
-
+    
     if (!is.null(shapefile$NAME_4)){
       all_aggregated$NAME_4 <- ""
     }
-
+    
     if (!is.null(shapefile$NAME_5)){
       all_aggregated$NAME_5 <- ""
     }
-
+    
     for (k in 1:length(functions_calculate)){
       current_function_name <- functions_calculate[k]
       name_df <- data.frame(current_function_name = 0)
@@ -264,11 +256,11 @@ nightlight_calculate <- function(area_names,
                           "current_function_name"] <- current_function_name
       all_aggregated <- cbind(all_aggregated, name_df)
     }
-
+    
     all_aggregated <- all_aggregated[-c(1),]
-
+    
     for (j in 1:length(sequence)){
-
+      
       get_lightfile(j = j,
                     light_location = light_location,
                     lightdata_time = lightdata_time,
@@ -277,39 +269,39 @@ nightlight_calculate <- function(area_names,
                     corrected_lights = corrected_lights,
                     harmonized_lights = harmonized_lights,
                     extent = extent)
-
+      
       if (skip_period == TRUE){
         next
       }
-
+      
       if (rawdata == TRUE){
         lightdata_uncut <- lightdata
         if (harmonized_lights == FALSE){
           qualitydata_uncut <- qualitydata
         }
       }
-
+      
       if (harmonized_lights == FALSE){
         lightdata[qualitydata <= cut_quality] <- NA
         qualitydata[qualitydata <= cut_quality] <- NA
         # also set quality to NA so later the mean of observations per pixel is
         # calculated only for pixels above the cut_quality threshold
       }
-
+      
       if (!is.null(cut_low)){
         lightdata[lightdata < cut_low] <- NA
         if (harmonized_lights == FALSE){
           qualitydata[lightdata < cut_low] <- NA
         }
       }
-
+      
       if (!is.null(cut_high)){
         lightdata[lightdata > cut_high] <- NA
         if (harmonized_lights == FALSE){
           qualitydata[lightdata > cut_high] <- NA
         }
       }
-
+      
       if (lightdata_time == "monthly"){
         aggregated <- data.frame(area_name = "",
                                  iso3c = "",
@@ -321,9 +313,9 @@ nightlight_calculate <- function(area_names,
                                  area_km2 = 0,
                                  year = 0)
       }
-
+      
       aggregated <- aggregated[-c(1),]
-
+      
       # set the number of rows for the output dataframe according to the number
       # of the lowest-order subregional division (5 divisions are the most
       # finely divided divisions)
@@ -354,27 +346,27 @@ nightlight_calculate <- function(area_names,
                  is.null(shapefile$NAME_1)){
         aggregated[nrow(aggregated) + 1,] <- NA
       }
-
+      
       if (!is.null(shapefile$NAME_5)){
         aggregated$NAME_5 <- shapefile$NAME_5
       }
-
+      
       if (!is.null(shapefile$NAME_4)){
         aggregated$NAME_4 <- shapefile$NAME_4
       }
-
+      
       if (!is.null(shapefile$NAME_3)){
         aggregated$NAME_3 <- shapefile$NAME_3
       }
-
+      
       if (!is.null(shapefile$NAME_2)){
         aggregated$NAME_2 <- shapefile$NAME_2
       }
-
+      
       if (!is.null(shapefile$NAME_1)){
         aggregated$NAME_1 <- shapefile$NAME_1
       }
-
+      
       aggregated$area_name <- area_name
       aggregated$iso3c <- ISO3
       aggregated$area_km2 <- area
@@ -383,14 +375,14 @@ nightlight_calculate <- function(area_names,
       } else if (lightdata_time == "yearly"){
         aggregated$year <- as.numeric(year)
       }
-
+      
       if (harmonized_lights == FALSE){
         aggregated$mean_obs <- suppressWarnings(raster::extract(qualitydata,
                                                                 shapefile,
                                                                 fun = mean,
                                                                 na.rm = TRUE))
       }
-
+      
       for (k in 1:length(functions_calculate)){
         current_function_name <- functions_calculate[k]
         function_df <- data.frame(
@@ -404,9 +396,9 @@ nightlight_calculate <- function(area_names,
           function_df) == "current_function_name"] <- functions_calculate[k]
         aggregated <- cbind(aggregated, function_df)
       }
-
+      
       all_aggregated <- rbind(all_aggregated, aggregated)
-
+      
       if (rawdata == TRUE){
         
         rawdata_list <- suppressWarnings(
@@ -497,7 +489,7 @@ nightlight_calculate <- function(area_names,
         }
         assign(rawdata_name, rawdata_values, envir = .GlobalEnv)
       }
-
+      
       if (single_dataframes == TRUE){
         # if user sets this to TRUE, the output will not only be an
         # aggregated dataframe for all countries, but also an additional one
@@ -505,7 +497,7 @@ nightlight_calculate <- function(area_names,
         single_df_name <- paste0(area_name, "_lights")
         assign(single_df_name, all_aggregated, envir = .GlobalEnv)
       }
-
+      
       if (i == 1){
         lights <- all_aggregated
         # build dataframe called lights with all areas, start with
@@ -515,18 +507,18 @@ nightlight_calculate <- function(area_names,
         # bind to the lights dataframe if area loop is
         # at least at the second iteration
       }
-
+      
     } # end sequence loop
-
+    
     rm(area_name)
     rm(ISO3)
     shapefile <- NULL
-
+    
   } # end area loop
-
+  
   lights <<- lights # load aggregated dataframe with all regions
   # into global environment
-
+  
   if (lightdata_time == "yearly" &
       harmonized_lights == FALSE){
     if (dmsp_consistent == TRUE | length(sequence) == 1){
@@ -534,8 +526,8 @@ nightlight_calculate <- function(area_names,
                    dmsp_stump, "."))
     } else if (dmsp_consistent == FALSE & length(sequence) > 1){
       print(paste0("It was not possible to select a consistent DMSP version ",
-      "for your timespan. For each year, the newest DMSP version was chosen."))
+                   "for your timespan. For each year, the newest DMSP version was chosen."))
     }
   }
-
+  
 } # end function

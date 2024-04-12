@@ -22,9 +22,9 @@ get_shapefile <- function(i,
   if (!is.na(help_shapefile)){
     if (length(grep(help_shapefile, pattern = "gpkg")) != 0){
       if (!is.null(gpkg_layer)){
-        shapefile <- rgdal::readOGR(shapefile, gpkg_layer)
+        shapefile <- sf::st_read(shapefile, gpkg_layer)
       } else if (is.null(gpkg_layer)){
-        layers_all <- rgdal::ogrListLayers(shapefile)
+        layers_all <- sf::st_layers(shapefile)[["name"]]
         layer <- layers_all[grep(as.character(admlevel), layers_all)]
         if (length(layer) > 1){ # if layer is not uniquely found by admlevel
           # alone e.g. when adm level 3 is chosen and all layers are
@@ -41,23 +41,15 @@ get_shapefile <- function(i,
         # "length(layers) - admlevel" does not work. plus, this is more
         # robust to other types of shapefiles than GADM as well.
         if (!is.na(layer)){
-          shapefile <- rgdal::readOGR(shapefile, layer)
+          shapefile <- sf::st_read(shapefile, layer)
         } else if (is.na(layer)){
           stop(paste0("Please enter the layer of your .gpkg shapefile for ",
                       area_name, " by hand using the gpkg_layer argument."))
         }
       }
-    } else if (length(grep(help_shapefile, pattern = "rds")) != 0){
-      shapefile <- readRDS(shapefile)
-      if (class(shapefile)[1] == "sf"){
-        stop(paste0("Unfortunately, the function does not work with sf.rds ",
-                    "shapefiles. If no other option is available to you, you ",
-                    "can try using the min/max x- and y-coordinates of your ",
-                    "shapefile in the function input instead."))
-      }
     } else if (length(grep(help_shapefile, pattern = "shp")) != 0 |
                length(grep(help_shapefile, pattern = "kml")) != 0){
-      shapefile <- rgdal::readOGR(shapefile)
+      shapefile <- sf::st_read(shapefile)
     } else {
       stop(paste0("Unfortunately, the function does not work the format of ",
                   "your shapefile. If no other option is available to you, ",
@@ -71,16 +63,17 @@ get_shapefile <- function(i,
     extent <- raster::extent(user_coordinates)
     extent_bbox <- sp::bbox(extent)
     shapefile <- methods::as(extent, "SpatialPolygons")
-    raster::crs(shapefile) <- "+init=epsg:4326"
+    raster::crs(shapefile) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
     shapefile <- sp::SpatialPolygonsDataFrame(shapefile,
                                               data.frame(N = c("1"),
                                                          row.names = c("1")))
+    shapefile <- sf::st_as_sf(shapefile)
   }
 
   # if no shapefile available at this point:
   # check if shapefile is already downloaded
   # check for every format. will preferably find
-  # .gpkg, then sp.rds, .shp, .kml in this order
+  # .gpkg, then .shp, .kml in this order
 
   # first: check for GADM shapefiles which are identified by ISO3 and admlevel
 
@@ -106,8 +99,8 @@ get_shapefile <- function(i,
         # here there is no need to check for gpkg_layer argument since gadm
         # shapefiles will always be able to identify the layer according to the
         # adm level
-        layers_all <- rgdal::ogrListLayers(paste0(shapefile_location, "/",
-                                                  help_shapefile))
+        layers_all <- sf::st_layers(paste0(shapefile_location, "/",
+                                                  help_shapefile))[["name"]]
         layer <- layers_all[grep(as.character(admlevel), layers_all)]
         if (length(layer) > 1){ # if layer is not uniquely found by admlevel
           # alone e.g. when adm level 3 is chosen and all layers are
@@ -124,7 +117,7 @@ get_shapefile <- function(i,
         # "length(layers) - admlevel" does not work. plus, this is more
         # robust to other types of shapefiles than GADM as well.
         if (!is.na(layer)){
-          shapefile <- rgdal::readOGR(paste0(shapefile_location, "/",
+          shapefile <- sf::st_read(paste0(shapefile_location, "/",
                                              help_shapefile), layer)
         } else if (is.na(layer)){
           stop(paste0("Please enter the layer of your .gpkg shapefile for ",
@@ -146,7 +139,7 @@ get_shapefile <- function(i,
                                        exdir = shapefile_location)
         help_shapefile <- help_shapefile[grep(help_shapefile,
                                               pattern = "gpkg")]
-        layers_all <- rgdal::ogrListLayers(help_shapefile)
+        layers_all <- sf::st_layers(help_shapefile)[["name"]]
         layer <- layers_all[grep(as.character(admlevel), layers_all)]
         if (length(layer) > 1){ # if layer is not uniquely found by admlevel
           # alone e.g. when adm level 3 is chosen and all layers are
@@ -163,7 +156,7 @@ get_shapefile <- function(i,
         # "length(layers) - admlevel" does not work. plus, this is more
         # robust to other types of shapefiles than GADM as well.
         if (!is.na(layer)){
-          shapefile <- rgdal::readOGR(help_shapefile, layer)
+          shapefile <- sf::st_read(help_shapefile, layer)
         } else if (is.na(layer)){
           stop(paste0("Please enter the layer of your .gpkg shapefile for ",
                       area_name, " by hand using the gpkg_layer argument."))
@@ -177,33 +170,13 @@ get_shapefile <- function(i,
                     "could not be loaded automatically.") )
       }
     }
-    # sp.rds
-    if (is.null(shapefile)){
-      help_shapefile <- list.files(shapefile_location, pattern = "rds")
-      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
-      help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-      if (length(help_shapefile) == 1){
-        shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
-        if (class(shapefile)[1] == "sf"){
-          stop(paste0("Unfortunately, the function does not work with sf.rds ",
-                      "shapefiles. If no other option is available to you, ",
-                      "you can try using the min/max x- and y-coordinates of ",
-                      "your shapefile in the function input instead."))
-        }
-      } else if (length(help_shapefile) > 1){
-        stop(paste0("Please enter the filename of your .rds shapefile for ",
-                    area_name,
-                    " by hand using the shapefiles argument. It could not ",
-                    "be loaded automatically.") )
-      }
-    }
     # .shp
     if (is.null(shapefile)){
       help_shapefile <- list.files(shapefile_location, pattern = "shp")
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
       if (length(help_shapefile) == 1){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location,
+        shapefile <- sf::st_read(paste0(shapefile_location,
                                            "/", help_shapefile))
       } else if (length(help_shapefile) > 1){
         stop(paste0("Please enter the filename of your .shp shapefile for ",
@@ -224,7 +197,7 @@ get_shapefile <- function(i,
                                               pattern = "shp")]
         help_shapefile <- help_shapefile[grep(help_shapefile,
                                               pattern = admlevel)]
-        shapefile <- rgdal::readOGR(help_shapefile)
+        shapefile <- sf::st_read(help_shapefile)
         zipfile <- list.files(shapefile_location, pattern = "shp.zip")
         zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
         unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
@@ -241,7 +214,7 @@ get_shapefile <- function(i,
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ISO3)]
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
       if (length(help_shapefile) == 1){
-        shapefile <- rgdal::readOGR(
+        shapefile <- sf::st_read(
           paste0(shapefile_location, "/", help_shapefile))
       } else if (length(help_shapefile) > 1){
         stop(paste0("Please enter the filename of your .kml shapefile for ",
@@ -258,7 +231,7 @@ get_shapefile <- function(i,
         help_shapefile <- utils::unzip(zipfile = paste0(shapefile_location, "/",
                                                         help_shapefile),
                                        exdir = shapefile_location)
-        shapefile <- rgdal::readOGR(help_shapefile)
+        shapefile <- sf::st_read(help_shapefile)
         zipfile <- list.files(shapefile_location, pattern = "kmz")
         zipfile <- zipfile[grep(zipfile, pattern = ISO3)]
         unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
@@ -283,11 +256,11 @@ get_shapefile <- function(i,
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
     if (length(help_shapefile) == 1){
       if (!is.null(gpkg_layer)){
-        shapefile <- rgdal::readOGR(paste0(shapefile_location, "/",
+        shapefile <- sf::st_read(paste0(shapefile_location, "/",
                                            help_shapefile), gpkg_layer)
       } else if (is.null(gpkg_layer)){
-        layers_all <- rgdal::ogrListLayers(paste0(
-          shapefile_location, "/", help_shapefile))
+        layers_all <- sf::st_layers(paste0(
+          shapefile_location, "/", help_shapefile))[["name"]]
         layer <- layers_all[grep(as.character(admlevel), layers_all)]
         if (length(layer) > 1){ # if layer is not uniquely found by admlevel
           # alone e.g. when adm level 3 is chosen and all layers are
@@ -304,7 +277,7 @@ get_shapefile <- function(i,
             # "length(layers) - admlevel" does not work. plus, this is more
             # robust to other types of shapefiles than GADM as well.
             if (!is.na(layer)){
-              shapefile <- rgdal::readOGR(paste0(shapefile_location, "/",
+              shapefile <- sf::st_read(paste0(shapefile_location, "/",
                                                  help_shapefile), layer)
             } else if (is.na(layer)){
               stop(paste0("Please enter the layer of your .gpkg shapefile for ",
@@ -316,7 +289,7 @@ get_shapefile <- function(i,
           }
         } else if (length(layer) == 1){
           # if admlevel alone matches a layer unambiguously, read directly
-          shapefile <- rgdal::readOGR(
+          shapefile <- sf::st_read(
             paste0(shapefile_location, "/", help_shapefile), layer)
         } else if (length(layer) == 0){ # if nothing is matched, this means
           # the layers are some strings e.g. landscape properties. user has to
@@ -342,9 +315,9 @@ get_shapefile <- function(i,
         shapefile_location, "/", help_shapefile), exdir = shapefile_location)
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = "gpkg")]
       if (!is.null(gpkg_layer)){
-        shapefile <- rgdal::readOGR(help_shapefile, gpkg_layer)
+        shapefile <- sf::st_read(help_shapefile, gpkg_layer)
       } else if (is.null(gpkg_layer)){
-        layers_all <- rgdal::ogrListLayers(help_shapefile)
+        layers_all <- sf::st_layers(help_shapefile)[["name"]]
         layer <- layers_all[grep(as.character(admlevel), layers_all)]
         if (length(layer) > 1){ # if layer is not uniquely found by admlevel
           # alone e.g. when adm level 3 is chosen and all layers are
@@ -361,7 +334,7 @@ get_shapefile <- function(i,
             # "length(layers) - admlevel" does not work. plus, this is more
             # robust to other types of shapefiles than GADM as well.
             if (!is.na(layer)){
-              shapefile <- rgdal::readOGR(help_shapefile, layer)
+              shapefile <- sf::st_read(help_shapefile, layer)
             } else if (is.na(layer)){
               stop(paste0("Please enter the layer of your .gpkg shapefile for ",
                           area_name, " by hand using the gpkg_layer argument."))
@@ -372,7 +345,7 @@ get_shapefile <- function(i,
           }
         } else if (length(layer) == 1){
           # if admlevel alone matches a layer unambiguously
-          shapefile <- rgdal::readOGR(help_shapefile, layer)
+          shapefile <- sf::st_read(help_shapefile, layer)
         } else if (length(layer) == 0){ # if nothing is matched, this means
           # the layers are some strings e.g. landscape properties. user has to
           # enter the strings in this case, no clear way to automatically
@@ -391,31 +364,12 @@ get_shapefile <- function(i,
                   "loaded automatically.") )
     }
   }
-  # sp.rds
-  if (is.null(shapefile)){
-    help_shapefile <- list.files(shapefile_location, pattern = "rds")
-    help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
-    if (length(help_shapefile) == 1){
-      shapefile <- readRDS(paste0(shapefile_location, "/", help_shapefile))
-      if (class(shapefile)[1] == "sf"){
-        stop(paste0("Unfortunately, the function does not work with sf.rds ",
-                    "shapefiles. If no other option is available to you, ",
-                    "you can try using the min/max x- and y-coordinates of ",
-                    "your shapefile in the function input instead."))
-      }
-    } else if (length(help_shapefile) > 1){
-      stop(paste0("Please enter the filename of your .rds shapefile for ",
-                  area_name,
-                  " by hand using the shapefiles argument. It could not be ",
-                  "loaded automatically.") )
-    }
-  }
   # .shp
   if (is.null(shapefile)){
     help_shapefile <- list.files(shapefile_location, pattern = "shp")
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
     if (length(help_shapefile) == 1){
-      shapefile <- rgdal::readOGR(paste0(shapefile_location,
+      shapefile <- sf::st_read(paste0(shapefile_location,
                                          "/", help_shapefile))
     } else if (length(help_shapefile) > 1){
       stop(paste0("Please enter the filename of your .shp shapefile for ",
@@ -433,7 +387,7 @@ get_shapefile <- function(i,
                                      exdir = shapefile_location)
       help_shapefile <- help_shapefile[grep(help_shapefile, pattern = "shp")]
       if (length(help_shapefile) == 1){
-        shapefile <- rgdal::readOGR(help_shapefile)
+        shapefile <- sf::st_read(help_shapefile)
         zipfile <- list.files(shapefile_location, pattern = "shp.zip")
         zipfile <- zipfile[grep(zipfile, pattern = area_name)]
         unlink(paste0(shapefile_location, "/", zipfile), recursive = TRUE)
@@ -457,7 +411,7 @@ get_shapefile <- function(i,
     help_shapefile <- list.files(shapefile_location, pattern = "kml")
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = area_name)]
     if (length(help_shapefile) == 1){
-      shapefile <- rgdal::readOGR(paste0(
+      shapefile <- sf::st_read(paste0(
         shapefile_location, "/", help_shapefile))
     } else if (length(help_shapefile) > 1){
       stop(paste0("Please enter the filename of your .kml shapefile for ",
@@ -472,7 +426,7 @@ get_shapefile <- function(i,
     if (length(help_shapefile) == 1){
       help_shapefile <- utils::unzip(zipfile = paste0(
         shapefile_location, "/", help_shapefile), exdir = shapefile_location)
-      shapefile <- rgdal::readOGR(paste0(shapefile_location, "/",
+      shapefile <- sf::st_read(paste0(shapefile_location, "/",
                                          help_shapefile))
       zipfile <- list.files(shapefile_location, pattern = "kmz")
       zipfile <- zipfile[grep(zipfile, pattern = area_name)]
@@ -486,22 +440,22 @@ get_shapefile <- function(i,
   }
 
   # if shapefile is not downloaded yet: download from GADM
-  stumpurl1 <- "https://biogeo.ucdavis.edu/data/gadm3.6/"
+  stumpurl1 <- "https://biogeo.ucdavis.edu/data/gadm4.1/"
   stumpurl2 <- "/gadm36_"
-
+  
   # .gpkg
   if (is.null(shapefile) & download_shape == ".gpkg"){
     utils::download.file(paste0(stumpurl1, "gpkg",
                                 stumpurl2 , ISO3, "_gpkg.zip"),
                          destfile = paste0(shapefile_location,
-                                           "/gadm36_", ISO3, "_gpkg.zip"),
+                                           "/gadm41_", ISO3, "_gpkg.zip"),
                          mode = "wb")
     help_shapefile <- paste0(shapefile_location,
-                             "/gadm36_", ISO3, "_gpkg.zip")
+                             "/gadm41_", ISO3, "_gpkg.zip")
     help_shapefile <- utils::unzip(zipfile = help_shapefile,
                                    exdir = shapefile_location)
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".gpkg")]
-    layers_all <- rgdal::ogrListLayers(help_shapefile)
+    layers_all <- sf::st_layers(help_shapefile)[["name"]]
     layer <- layers_all[grep(as.character(admlevel), layers_all)]
     if (length(layer) > 1){ # if layer is not uniquely found by admlevel alone
       #  e.g. when adm level 3 is chosen and all layers are called "gadm3_6..."
@@ -516,36 +470,24 @@ get_shapefile <- function(i,
     # order "admlevel + 1" or descending order
     # "length(layers) - admlevel" does not work. plus, this is more
     # robust to other types of shapefiles than GADM as well.
-    shapefile <- rgdal::readOGR(help_shapefile, layer)
-    unlink(paste0(shapefile_location, "/gadm36_", ISO3, "_gpkg.zip"),
+    shapefile <- sf::st_read(help_shapefile, layer)
+    unlink(paste0(shapefile_location, "/gadm41_", ISO3, "_gpkg.zip"),
            recursive = TRUE)
-  }
-  # sp.rds
-  if (is.null(shapefile) & download_shape == "sp.rds"){
-    utils::download.file(paste0(stumpurl1, "Rsp", stumpurl2,
-                                ISO3, "_", admlevel, "_sp.rds"),
-                         destfile = paste0(shapefile_location,
-                                           "/gadm36_", ISO3, "_",
-                                           admlevel, "_sp.rds"),
-                         mode = "wb")
-    help_shapefile <- paste0(shapefile_location, "/gadm36_",
-                             ISO3, "_", admlevel, "_sp.rds")
-    shapefile <- readRDS(help_shapefile)
   }
   # .shp
   if (is.null(shapefile) & download_shape == ".shp"){
     utils::download.file(paste0(stumpurl1, "shp", stumpurl2, ISO3, "_shp.zip"),
                          destfile = paste0(shapefile_location,
-                                           "/gadm36_", ISO3, "_shp.zip"),
+                                           "/gadm41_", ISO3, "_shp.zip"),
                          mode = "wb")
-    help_shapefile <- paste0(shapefile_location, "/gadm36_",
+    help_shapefile <- paste0(shapefile_location, "/gadm41_",
                              ISO3, "_shp.zip")
     help_shapefile <- utils::unzip(zipfile = help_shapefile,
                                    exdir = shapefile_location)
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = ".shp")]
     help_shapefile <- help_shapefile[grep(help_shapefile, pattern = admlevel)]
-    shapefile <- rgdal::readOGR(help_shapefile)
-    unlink(paste0(shapefile_location, "/gadm36_", ISO3, "_shp.zip"),
+    shapefile <- sf::st_read(help_shapefile)
+    unlink(paste0(shapefile_location, "/gadm41_", ISO3, "_shp.zip"),
            recursive = TRUE)
   }
   # .kml
@@ -553,14 +495,14 @@ get_shapefile <- function(i,
     utils::download.file(paste0(stumpurl1, "kmz", stumpurl2,
                                 ISO3, "_", admlevel, ".kmz"),
                          destfile = paste0(shapefile_location,
-                                           "/gadm36_", ISO3, "_",
+                                           "/gadm41_", ISO3, "_",
                                            admlevel, ".kmz"), mode = "wb")
-    help_shapefile <- paste0(shapefile_location, "/gadm36_",
+    help_shapefile <- paste0(shapefile_location, "/gadm41_",
                              ISO3, "_", admlevel, ".kmz")
     help_shapefile <- utils::unzip(zipfile = help_shapefile,
                                    exdir = shapefile_location)
-    shapefile <- rgdal::readOGR(help_shapefile)
-    unlink(paste0(shapefile_location, "/gadm36_",
+    shapefile <- sf::st_read(help_shapefile)
+    unlink(paste0(shapefile_location, "/gadm41_",
                   ISO3, "_", admlevel, ".kmz"),
            recursive = TRUE)
   }
@@ -571,8 +513,8 @@ get_shapefile <- function(i,
   shapefileprojection <- as.character(shapefileprojection)
   if (length(shapefileprojection[grep(shapefileprojection,
                                       pattern = "longlat")]) == 0){
-    shapefile <- suppressWarnings(sp::spTransform(shapefile,
-                                                  CRSobj = "+init=epsg:4326"))
+    shapefile <- suppressWarnings(sf::st_transform(shapefile,
+                                                   crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"))
   }
 
   if (is.null(user_coordinates)){

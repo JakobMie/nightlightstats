@@ -35,7 +35,7 @@
 #' which you enter in area_names or the iso3c countrycode (if it is a
 #' country) in its filename, it will be detected automatically and you do not
 #' have to use this argument.
-#' @param download_shape Default is ".gpkg". Change to ".rds", ".shp" or
+#' @param download_shape Default is ".gpkg". Change to ".shp" or
 #' ".kml" if you want to download a different shapefile format from GADM. Will
 #' only download if no own shapefiles are provided in the shapefiles argument
 #' or automatically detected in the shapefile location.
@@ -44,7 +44,7 @@
 #' happen if the layers of your .gpkg shapefile do not include an admlevel in
 #' their names. In that case, enter the layer here as a string. Note that this
 #' only works for one area at a time. To find out which layers are included
-#' in your .gpkg shapefile, you can use rgdal::ogrListLayers().
+#' in your .gpkg shapefile, you can use sf::st_layers().
 #' @param admlevel Default is 0. Change this when working with different
 #' administrative levels.
 #' @param user_coordinates May be empty. Inputs are decimal numbers (longlat).

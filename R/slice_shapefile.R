@@ -25,7 +25,7 @@
 #' you want the area to be split up into as an integer here.
 #' @param gpkg_layer For .gpkg files, enter the layer here as a string.
 #' To find out which layers are included in your .gpkg shapefile, you can
-#' use rgdal::ogrListLayers().
+#' use sf::st_layers().
 #' @export
 
 slice_shapefile <- function(shapefile,
@@ -49,7 +49,7 @@ slice_shapefile <- function(shapefile,
                                     start = nchar(shapefile) - 4,
                                     stop = (nchar(shapefile)))
     if (!is.null(gpkg_layer)){
-      shapefile <- rgdal::readOGR(
+      shapefile <- sf::st_read(
         paste0(shapefile_location, "/", shapefile), gpkg_layer)
     } else if (is.null(gpkg_layer)){
       stop(paste0("Please enter the layer of your .gpkg shapefile by ",
@@ -69,13 +69,13 @@ slice_shapefile <- function(shapefile,
     shapefile_name_ending <- substr(shapefile,
                                     start = nchar(shapefile) - 3,
                                     stop = (nchar(shapefile)))
-    shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", shapefile))
+    shapefile <- sf::st_read(paste0(shapefile_location, "/", shapefile))
   } else if (length(grep(shapefile, pattern = ".kml")) != 0){
     shapefile_name <- strsplit(shapefile, ".kml")
     shapefile_name_ending <- substr(shapefile,
                                     start = nchar(shapefile) - 3,
                                     stop = (nchar(shapefile)))
-    shapefile <- rgdal::readOGR(paste0(shapefile_location, "/", shapefile))
+    shapefile <- sf::st_read(paste0(shapefile_location, "/", shapefile))
   } else {
     stop(paste0("Unfortunately, the function does not work the format ",
                 "of your shapefile."))
@@ -97,10 +97,11 @@ slice_shapefile <- function(shapefile,
       coord_current <- methods::as(raster::extent(coord_current),
                                    "SpatialPolygons")
       raster::crs(coord_current) <- crs_string
-      shapefile_current <- rgeos::gIntersection(shapefile, coord_current ,
-                                                byid = TRUE)
-      shapefile_current <- sp::SpatialPolygonsDataFrame(
-        shapefile_current, data.frame(N = "1", row.names = c("1 1")))
+      coord_current <- sf::st_as_sf(coord_current)
+      shapefile_current <- suppressWarnings(sf::st_intersection(sf::st_geometry(shapefile), coord_current))
+      #shapefile_current <- sp::SpatialPolygonsDataFrame(
+       # shapefile_current, data.frame(N = "1", row.names = c("1 1")))
+      #shapefile_current <- sf::st_as_sf(shapefile_current)
       assign(paste0(shapefile_name, "_", i-1), shapefile_current)
     }
 
@@ -111,21 +112,20 @@ slice_shapefile <- function(shapefile,
       coord_current <- methods::as(raster::extent(coord_current),
                                    "SpatialPolygons")
       raster::crs(coord_current) <- crs_string
-      shapefile_current <- rgeos::gIntersection(shapefile, coord_current ,
-                                                byid = TRUE)
-      shapefile_current <- sp::SpatialPolygonsDataFrame(
-        shapefile_current, data.frame(N = "1", row.names = c("1 1")))
+      coord_current <- sf::st_as_sf(coord_current)
+      shapefile_current <- suppressWarnings(sf::st_intersection(shapefile, coord_current))
+      #shapefile_current <- sp::SpatialPolygonsDataFrame(
+        #shapefile_current, data.frame(N = "1", row.names = c("1 1")))
+      #shapefile_current <- sf::st_as_sf(shapefile_current)
       assign(paste0(shapefile_name, "_", i-1), shapefile_current)
     }
   }
 
-  # save the sliced shapefiles as .rds shapefiles
-
+  # save the sliced shapefiles 
+  
   for (j in 1:number_pieces){
     current_shapefile <- get(paste0(shapefile_name, "_", j))
-    readr::write_rds(current_shapefile,
-                     path = paste0(shapefile_location, "/",
-                                   shapefile_name, "_", j, ".rds"),
-                     compress = c("none"))
+    sf::st_write(current_shapefile, paste0(shapefile_location, "/",
+                                           shapefile_name, "_", j, ".gpkg"), driver = "GPKG")
   }
 }
