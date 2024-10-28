@@ -4,7 +4,7 @@ Title: nightlightstats
 Version: 0.1.0
 Author: Jakob Miethe, Mark Toth
 Maintainer: Jakob Miethe <jakob.miethe@econ.lmu.de>, Mark Toth <mark-toth@uni-bonn.de>
-Description:  This R package allows calculating user-specified statistics for a specified region's nighttime light satellite data. The package processes yearly DMSP data ranging from 1992 to 2013 and monthly VIIRS data beginning in April 2012. You can either provide own shapefiles for the specified region or have them (in the case of countries or their administrative divisions) automatically downloaded from GADM. 
+Description:  This R package allows calculating user-specified statistics for regional nighttime light satellite data. The package processes yearly DMSP data ranging from 1992 to 2013 and monthly VIIRS data beginning in April 2012. You can either provide own shapefiles or have shapfiles automatically downloaded from GADM if you are working with countries or their administrative divisions. 
 License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
