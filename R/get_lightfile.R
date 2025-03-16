@@ -10,7 +10,7 @@ get_lightfile <- function(j,
 
   if (lightdata_time == "monthly"){
 
-    year <- substr(sequence[j],5, 8)
+    year <- format(sequence[j], "%Y")
     numericyear <- as.numeric(year)
     month <- as.character(data.table::month(sequence[j]))
 
