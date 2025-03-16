@@ -12,7 +12,7 @@ get_lightfile <- function(j,
 
     year <- format(sequence[j], "%Y")
     numericyear <- as.numeric(year)
-    month <- as.character(data.table::month(sequence[j]))
+    month <- as.character(zoo::as.yearmon(sequence[j]))
 
     if (nchar(month) == 1){
       month <- paste0("0", month)
